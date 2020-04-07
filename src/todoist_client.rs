@@ -38,8 +38,8 @@ pub struct TodoistDate {
 }
 
 pub trait TodoistClient {
-    fn projects(&mut self) -> Vec<Project>;
-    fn tasks(&mut self, project: &str) -> Vec<Task>;
+    fn projects(&mut self) -> Result<Vec<Project>, Error>;
+    fn tasks(&mut self, project: &str) -> Result<Vec<Task>, Error>;
 }
 
 pub struct TodoistRestClient {
@@ -68,37 +68,32 @@ impl TodoistRestClient {
         TodoistRestClient { token, projects: Vec::new() }
     }
 
-    fn get_client(&mut self) -> RestClient {
-        let mut client = RestClient::new(URL_BASE).unwrap();
-        client.set_header("Authorization", format!("Bearer {}", self.token).as_str());
-        client
+    fn get_client(&mut self) -> Result<RestClient, Error> {
+        let mut client = RestClient::new(URL_BASE)?;
+        client.set_header("Authorization", format!("Bearer {}", self.token).as_str())?;
+        Ok(client)
     }
 }
 impl TodoistClient for TodoistRestClient {
-    fn projects(&mut self) -> Vec<Project> {
+    fn projects(&mut self) -> Result<Vec<Project>, Error> {
         if self.projects.is_empty() {
-            let mut client = self.get_client();
-            self.projects = match client.get::<_, Projects>(()) {
-                Ok(projects) => projects.0,
-                Err(_) => Vec::new()
-            };
+            let mut client = self.get_client()?;
+            self.projects = client.get::<_, Projects>(())?.0
         }
 
-        self.projects.clone()
+        Ok(self.projects.clone())
     }
 
-    fn tasks(&mut self, project: &str) -> Vec<Task> {
-        let mut client = self.get_client();
-        let projects = self.projects();
+    fn tasks(&mut self, project: &str) -> Result<Vec<Task>, Error> {
+        let mut client = self.get_client()?;
+        let projects = self.projects()?;
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        // TODO: Somehow, I should be able to use `get_with` to pass the project id into this call.
-        let tasks: Vec<Task> = client.get_with::<_, Tasks>((), &[("project_id", format!("{}", selected_project.id).as_str())]).unwrap().0.iter().
-            filter(|t| t.project_id == selected_project.id).
+        let tasks: Vec<Task> = client.get_with::<_, Tasks>((), &[("project_id", format!("{}", selected_project.id).as_str())])?.0.iter().
             map(|t| t.to_owned()).
             collect();
-        tasks
+        Ok(tasks)
     }
 
 
