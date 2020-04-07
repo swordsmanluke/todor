@@ -28,3 +28,6 @@ chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
 # Regex, cause, you know. Regex
 regex = "1"
 lazy_static = "1.4.0"  # Helps us to only compile Regex patterns once
+
+# Text formatting
+colored = "1.9.3"
