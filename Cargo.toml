@@ -31,3 +31,6 @@ lazy_static = "1.4.0"  # Helps us to only compile Regex patterns once
 
 # Text formatting
 colored = "1.9.3"
+
+# Merging iterators and all that jazz
+itertools = "0.9.0"

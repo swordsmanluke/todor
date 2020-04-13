@@ -1,4 +1,4 @@
-use crate::schedule_trait::ScheduledItem;
+use crate::scheduled_item::ScheduledItem;
 use chrono::{Local, DateTime, Timelike};
 
 const FIVE_MIN_PAST: i64 = -5 * 60 * 1000;
@@ -14,18 +14,18 @@ pub fn format_item(item: &ScheduledItem, max_width: usize) -> Option<String> {
 fn format_item_with_time_remaining(item: &ScheduledItem, time_remaining: i64, max_width: usize) -> Option<String> {
     match time_remaining {
         FIVE_MIN_PAST..=TEN_MIN_TIL  => Some(format_with_location(item, max_width)),
-        AFTER_TEN_MIN..=ETERNITY     => Some(format_without_location(item, max_width)),
-        _                            => None
+        AFTER_TEN_MIN..=ETERNITY     => Some(format_without_location(item, max_width)), // None
+        _                            => Some(format_without_location(item, max_width)),
     }
 }
 
 fn format_without_location(item: &ScheduledItem, max_width: usize) -> String {
-    format!("{0:<2$}  {1}", item.description, format_time(item.time), max_width - 7)
+    format!("{0:<2$}  {1}", item.description, format_time(item.time), max_width + 2)
 }
 
 fn format_with_location(item: &ScheduledItem, max_width: usize) -> String {
     match item.place.as_ref() {
-        Some(place) => format!("{0:<3$}  {1}\n\t{2}", item.description, format_time(item.time) , place, max_width - 7),
+        Some(place) => format!("{0:<3$}  {1}\n\t{2}", item.description, format_time(item.time) , place, max_width + 2),
         None => format_without_location(item, max_width)
     }
 }

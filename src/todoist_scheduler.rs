@@ -1,4 +1,4 @@
-use crate::schedule_trait::ScheduledItem;
+use crate::scheduled_item::ScheduledItem;
 use crate::todoist_client::*;
 use chrono::{DateTime, Local, TimeZone, Date};
 use restson::Error;

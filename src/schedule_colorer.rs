@@ -1,4 +1,4 @@
-use crate::schedule_trait::ScheduledItem;
+use crate::scheduled_item::ScheduledItem;
 use chrono::Local;
 use colored::*;
 
@@ -6,9 +6,7 @@ use colored::*;
 const THREE_MIN_TIL: i64 = 3 * 60 * 1000;
 const CRITICAL_WARNING_STARTS: i64 = THREE_MIN_TIL - 1;
 const TEN_MIN_TIL: i64 = 10 * 60 * 1000;
-const STARTED: i64 = 1;
 const ONE_MINUTE_PAST: i64 = -60 * 1000;
-const ETERNITY: i64 = 9223372036854775807; // max_val, basically.
 
 pub fn color_item(item: &ScheduledItem, text: &String) -> String {
     let time_remaining = (Local::now() - item.time).num_milliseconds();
