@@ -80,7 +80,7 @@ fn convert_event_time(time: EventDateTime) -> DateTime<Local> {
     match datetime {
         Some(dt) => dt,
         None => match all_day {
-            Some(ad) => ad.and_hms(11, 59, 59),
+            Some(ad) => ad.and_hms(23, 59, 59),
             None => Local::now()
         }
     }

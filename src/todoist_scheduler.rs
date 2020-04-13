@@ -56,7 +56,7 @@ fn task_to_scheduled_item(t: &Task) -> ScheduledItem {
 }
 
 fn end_of_day(date: Date<Local>) -> DateTime<Local> {
-    date.and_hms(11, 59, 59)
+    date.and_hms(23, 59, 59)
 }
 
 
