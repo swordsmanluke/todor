@@ -9,8 +9,11 @@ const TEN_MIN_TIL: i64 = 10 * 60 * 1000;
 const ONE_MINUTE_PAST: i64 = -60 * 1000;
 
 pub fn color_item(item: &ScheduledItem, text: &String) -> String {
-    let time_remaining = (Local::now() - item.time).num_milliseconds();
-    color_item_with_time_remaining(text, time_remaining)
+    color_item_with_time_remaining(text, time_remaining_til(item))
+}
+
+fn time_remaining_til(item: &ScheduledItem) -> i64 {
+    (item.time - Local::now()).num_milliseconds()
 }
 
 fn color_item_with_time_remaining(text: &String, time_remaining: i64) -> String {
@@ -29,6 +32,16 @@ fn color_item_with_time_remaining(text: &String, time_remaining: i64) -> String 
 mod tests {
     use super::*;
     use chrono::TimeZone;
+    fn abs(val: i64) -> i64 {
+        if val < 0 { -val }
+        else { val }
+    }
+    #[test]
+    fn when_time_remaining_is_two_minutes() {
+        let item = item(120);
+        let remaining = time_remaining_til(&item);
+        assert!(abs(120 * 1000 - remaining) < 10);
+    }
 
     #[test]
     fn when_more_than_ten_minutes_out_text_is_plain() {
@@ -60,8 +73,8 @@ mod tests {
         assert_eq!("Hope you're there", colored);
     }
 
-    fn item() -> ScheduledItem {
-        let scheduled_time = Local.ymd(2020, 4, 2).and_hms(12, 1, 13);
+    fn item(seconds_in_future: i64) -> ScheduledItem {
+        let scheduled_time = Local.timestamp_millis_opt(Local::now().timestamp_millis() + seconds_in_future*1000).unwrap();
         let location = Some("location".to_string());
         ScheduledItem::new("A meeting".to_string(), scheduled_time, location)
     }
