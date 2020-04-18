@@ -16,6 +16,7 @@ use crate::google_calendar_client::create_gcal_client;
 use std::error::Error;
 use itertools::Itertools;
 use std::cmp::min;
+use colored::*;
 
 mod google_calendar_client;
 mod google_scheduler;
@@ -25,7 +26,7 @@ mod schedule_colorer;
 mod todoist_scheduler;
 mod todoist_client;
 
-const MAX_WIDTH: usize = 58; // max size of my terminal window
+const MAX_WIDTH: usize = 48; // max size of my terminal window
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut tds = create_todoist_scheduler();

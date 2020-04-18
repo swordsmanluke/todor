@@ -23,7 +23,7 @@ impl GoogleScheduler {
 
     pub fn get_schedule(&mut self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
         let start_time = Local::now().add(Duration::minutes(-10)).to_rfc3339().clone();
-        let end_time = Local::now().add(Duration::days(5)).to_rfc3339();
+        let end_time = Local::now().add(Duration::days(2)).to_rfc3339();
 
         let events = self.hub.events().list(self.calendar_name.as_ref()).
             time_min(start_time.as_str()).

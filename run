@@ -1,2 +1,2 @@
 #!/bin/zsh
-./target/debug/todor
+CLICOLOR_FORCE=1 ./target/debug/todor
