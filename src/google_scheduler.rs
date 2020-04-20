@@ -1,11 +1,11 @@
 use google_calendar3::{CalendarHub, Event, EventDateTime};
 use hyper::Client;
 use yup_oauth2::{Authenticator, DefaultAuthenticatorDelegate};
-use crate::scheduled_item::ScheduledItem;
+use crate::scheduled_item::{ScheduledItem, Scheduler};
 use chrono::{DateTime, Local, Duration, TimeZone, Datelike, NaiveDate};
 use std::ops::Add;
 use std::error::Error;
-use crate::google_calendar_client::JsonTokenStorage;
+use crate::google_calendar_client::{JsonTokenStorage, create_gcal_client};
 use std::str::FromStr;
 
 pub struct GoogleScheduler {
@@ -13,15 +13,22 @@ pub struct GoogleScheduler {
     pub hub: CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>,
 }
 
+pub(crate) fn create_gcal_scheduler(auth_file: String, cal_name: String) -> Result<GoogleScheduler, Box<dyn Error>> {
+    let gcc = create_gcal_client(auth_file)?;
+    Ok(GoogleScheduler::new(cal_name, gcc))
+}
+
 impl GoogleScheduler {
-    pub fn new(cal_name: &str, hub: CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>) -> GoogleScheduler {
+    pub fn new(cal_name: String, hub: CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>) -> GoogleScheduler {
         GoogleScheduler {
-            calendar_name: cal_name.to_string(),
+            calendar_name: cal_name,
             hub,
         }
     }
+}
 
-    pub fn get_schedule(&mut self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
+impl Scheduler for GoogleScheduler {
+    fn get_schedule(&self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
         let start_time = Local::now().add(Duration::minutes(-10)).to_rfc3339().clone();
         let end_time = Local::now().add(Duration::days(2)).to_rfc3339();
 

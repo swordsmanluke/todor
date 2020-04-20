@@ -38,13 +38,12 @@ pub struct TodoistDate {
 }
 
 pub trait TodoistClient {
-    fn projects(&mut self) -> Result<Vec<Project>, Error>;
-    fn tasks(&mut self, project: &str) -> Result<Vec<Task>, Error>;
+    fn projects(&self) -> Result<Vec<Project>, Error>;
+    fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
 }
 
 pub struct TodoistRestClient {
     token: String,
-    projects: Vec<Project>,
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -65,26 +64,24 @@ impl RestPath<()> for Tasks {
 
 impl TodoistRestClient {
     pub fn new(token: String) -> TodoistRestClient {
-        TodoistRestClient { token, projects: Vec::new() }
+        TodoistRestClient { token }
     }
 
-    fn get_client(&mut self) -> Result<RestClient, Error> {
+    fn get_client(&self) -> Result<RestClient, Error> {
         let mut client = RestClient::new(URL_BASE)?;
         client.set_header("Authorization", format!("Bearer {}", self.token).as_str())?;
         Ok(client)
     }
 }
 impl TodoistClient for TodoistRestClient {
-    fn projects(&mut self) -> Result<Vec<Project>, Error> {
-        if self.projects.is_empty() {
-            let mut client = self.get_client()?;
-            self.projects = client.get::<_, Projects>(())?.0
-        }
+    fn projects(&self) -> Result<Vec<Project>, Error> {
+        let mut client = self.get_client()?;
+        let projects = client.get::<_, Projects>(())?.0;
 
-        Ok(self.projects.clone())
+        Ok(projects)
     }
 
-    fn tasks(&mut self, project: &str) -> Result<Vec<Task>, Error> {
+    fn tasks(&self, project: &str) -> Result<Vec<Task>, Error> {
         let mut client = self.get_client()?;
         let projects = self.projects()?;
         let selected_project = projects.iter().find(|p| p.name == project).
@@ -95,7 +92,5 @@ impl TodoistClient for TodoistRestClient {
             collect();
         Ok(tasks)
     }
-
-
 }
 

@@ -1,8 +1,9 @@
-use crate::scheduled_item::ScheduledItem;
+use crate::scheduled_item::{ScheduledItem, Scheduler};
 use crate::todoist_client::*;
 use chrono::{DateTime, Local, TimeZone, Date};
-use restson::Error;
 use regex::Regex;
+use std::error::Error;
+use std::fs::File;
 
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -10,17 +11,27 @@ pub struct ApiToken {
     pub token: String
 }
 
-pub struct TodoistScheduler<T> where T: TodoistClient {
-    client: T
+pub struct TodoistScheduler {
+    client: Box<dyn TodoistClient>,
+    project: String,
 }
 
-impl<T> TodoistScheduler<T> where T: TodoistClient{
-    pub fn new(client: T) -> Self {
-        TodoistScheduler { client }
-    }
+pub(crate) fn create_todoist_scheduler(name: String, project: String) -> Result<TodoistScheduler, Box<dyn Error>> {
+    let file = File::open(format!("config/{}.json", name))?;
+    let todoist_token: ApiToken = serde_json::from_reader(file).expect("Badly formatted auth token file!");
+    let tdc = TodoistRestClient::new(todoist_token.token);
+    Ok(TodoistScheduler::new(Box::new(tdc), project))
+}
 
-    pub fn get_schedule(&mut self) -> Result<Vec<ScheduledItem>, Error> {
-        let scheduled_items = self.client.tasks("Inbox")?.iter().
+impl TodoistScheduler {
+    pub fn new(client: Box<dyn TodoistClient>, project: String) -> Self {
+        TodoistScheduler { client, project }
+    }
+}
+
+impl Scheduler for TodoistScheduler{
+    fn get_schedule(&self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
+        let scheduled_items = self.client.tasks(self.project.as_str())?.iter().
             map(|t| task_to_scheduled_item(t)).collect();
 
         Ok(scheduled_items)
@@ -58,11 +69,6 @@ fn task_to_scheduled_item(t: &Task) -> ScheduledItem {
 fn end_of_day(date: Date<Local>) -> DateTime<Local> {
     date.and_hms(23, 59, 59)
 }
-
-
-
-
-
 
 
 

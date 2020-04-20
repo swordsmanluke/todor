@@ -2,3 +2,4 @@
 **/*.rs.bk
 /config/*.json
 *.iml
+/config/config.toml

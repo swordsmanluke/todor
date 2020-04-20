@@ -1,0 +1,51 @@
+# Setting up Google Calendars
+#
+# 1) Go here: https://developers.google.com/calendar/quickstart/python
+#    and Enable the Calendar API in step one
+# 2) Download the credentials file they give you as "credentials.json"
+# 3) Move credentials.json into the app's "config/" folder and give it a name, like "work_cal.json" or similar
+# 4) In config/config.toml add an entry like
+#    [[google_cal]]
+#       name="work_cal"
+#       cal_name="joe.blow@gmail.com"
+#
+#    Where "work_cal" is the name of the credentials file, minus the ".json" extension; and "cal_name" is your email address.
+#
+# You can have multiple Google calendars, just repeat steps 1-4 while logged into different accounts
+# and give them all different names.
+
+# [[google_cal]]
+#     name="work_cal"
+#     cal_name="joe@impressivecompany.com"
+#
+# [[google_cal]]
+#     name='home_cal'
+#     cal_name="XXXslayer4lifeXXX@gmail.com"
+
+# Setting up Todoist access
+#
+# 1) Log into Todoist.
+# 2) Go here: https://todoist.com/prefs/integrations
+# 3) Generate an API key at the bottom of the page
+# 4) Copy the API key into a file named something like "todoist.json" and put it in the config directory
+#    The contents of the json file should look like
+#
+#    { "token": "API KEY GOES INSIDE THESE QUOTES" }
+#
+# 5) In config/config.toml add an entry like
+#    [[todoist]]
+#        name="todoist"
+#        project="Inbox"
+#
+#   Where "todoist" is the name of the file with the API key, minus ".json" and "Inbox" is the name of the
+#   project to load when starting up.
+#
+#   You can load multiple projects for the same config by adding multiple entries:
+#
+# [[todoist]]
+#     name="todoist"
+#     project="Inbox"
+#
+# [[todoist]]
+#    name="todoist"
+#    project="Media"

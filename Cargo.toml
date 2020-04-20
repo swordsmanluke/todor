@@ -34,3 +34,6 @@ colored = "1.9.3"
 
 # Merging iterators and all that jazz
 itertools = "0.9.0"
+
+# TOML config parsing
+toml = "0.5.6"

@@ -18,15 +18,15 @@ use std::fmt;
 use serde::de::StdError;
 use std::error::Error;
 
-pub fn create_gcal_client(auth_file: &'static str) -> Result<CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>, Box<dyn Error>> {
+pub fn create_gcal_client(auth_file: String) -> Result<CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>, Box<dyn Error>> {
     // Read in the auth file and configure ourselves
-    let secret = read_secret_file(auth_file)?;
-    let filename = Path::new(auth_file).file_stem().unwrap();
+    let secret = read_secret_file(auth_file.as_str())?;
+    let filename = format!("{}", Path::new(&auth_file.clone()).file_stem().unwrap().to_str().unwrap());
 
     let auth = Authenticator::new(  &secret, DefaultAuthenticatorDelegate,
                                     hyper::Client::with_connector(hyper::net::HttpsConnector::new(hyper_rustls::TlsClient::new())),
                                     JsonTokenStorage {
-                                        program_name: filename.to_str().unwrap(),
+                                        program_name: filename,
                                         db_dir: "config".to_string(),
                                     }, Some(FlowType::InstalledRedirect(54324)));
 
@@ -50,7 +50,7 @@ fn read_secret_file(auth_file: &str) -> std::result::Result<ApplicationSecret, B
 // because GCal's official Rust lib documentation is garbage.
 
 pub struct JsonTokenStorage {
-    pub program_name: &'static str,
+    pub program_name: String,
     pub db_dir: String,
 }
 
