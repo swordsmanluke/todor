@@ -29,13 +29,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let schedulers = load_schedulers(cfg)?;
 
     let mut items: Vec<ScheduledItem> = schedulers.iter().flat_map(|s| s.get_schedule().unwrap()).collect();
-    items.sort_by_key(|f| f.time);
+    items.sort_by_key(|f| f.start_time);
 
     // max_width is determined by the widest description or MAX_WIDTH, whichever is smaller.
     let max_width = min(MAX_WIDTH, items.iter().map(|i| i.description.len()).max().unwrap());
 
     // TODO: Group everything from a past date into a general "OVERDUE" bucket.
-    let grouped_by_date = items.into_iter().group_by(|item| item.time.date());
+    let grouped_by_date = items.into_iter().group_by(|item| item.start_time.date());
 
     for (date, items_for_date) in &grouped_by_date
     {

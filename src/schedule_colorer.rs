@@ -13,7 +13,7 @@ pub fn color_item(item: &ScheduledItem, text: &String) -> String {
 }
 
 fn time_remaining_til(item: &ScheduledItem) -> i64 {
-    (item.time - Local::now()).num_milliseconds()
+    (item.start_time - Local::now()).num_milliseconds()
 }
 
 fn color_item_with_time_remaining(text: &String, time_remaining: i64) -> String {
@@ -76,7 +76,7 @@ mod tests {
     fn item(seconds_in_future: i64) -> ScheduledItem {
         let scheduled_time = Local.timestamp_millis_opt(Local::now().timestamp_millis() + seconds_in_future*1000).unwrap();
         let location = Some("location".to_string());
-        ScheduledItem::new("A meeting".to_string(), scheduled_time, location)
+        ScheduledItem::new("A meeting".to_string(), scheduled_time, None,location)
     }
 
 }

@@ -63,6 +63,7 @@ fn task_to_scheduled_item(t: &Task) -> ScheduledItem {
     ScheduledItem::new(
         t.content.clone(),
         td_time_to_datetime(&t.due),
+        None,
         None)
 }
 

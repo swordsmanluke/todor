@@ -53,9 +53,11 @@ fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {
     let description = e.summary.clone().unwrap_or("no desc".to_string());
     let place = format_location(e.location.clone());
 
-    match event_start_time(e) {
-        None => None,
-        Some(time) => Some(ScheduledItem::new(description, time, place))
+    let start_time = event_start_time(e);
+    let end_time = event_end_time(e);
+    match (start_time, end_time) {
+        (Some(start_time), _) => Some(ScheduledItem::new(description, start_time, end_time, place)),
+        _ => None
     }
 }
 
@@ -66,6 +68,17 @@ fn event_start_time(e: &Event) -> Option<DateTime<Local>> {
         (Some(s), None) => Some(s.clone()),
         (_, Some(s)) => Some(s.clone())
     };
+
+    Some(convert_event_time(time.unwrap()))
+}
+
+fn event_end_time(e: &Event) -> Option<DateTime<Local>> {
+    let time = match e.end.as_ref() {
+        None => None,
+        Some(end) => Some(end.clone()),
+    };
+
+    if time.is_none() { return None; }
 
     Some(convert_event_time(time.unwrap()))
 }
