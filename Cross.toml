@@ -1,0 +1,2 @@
+[target.arm-unknown-linux-gnueabi]
+image = "my/pi-build:latest"
