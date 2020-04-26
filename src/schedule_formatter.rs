@@ -4,12 +4,10 @@ use chrono::{Local, DateTime, Timelike};
 const DURING_MEETING: i64 = FIVE_MIN_PAST - 1;
 const FIVE_MIN_PAST: i64 = -5 * 60 * 1000;
 const TEN_MIN_TIL: i64 = 10 * 60 * 1000;
-const AFTER_TEN_MIN: i64 = 1 + TEN_MIN_TIL;
-const ETERNITY: i64 = 9223372036854775807; // max_val, basically.
 const NEG_ETERNITY: i64 = -9223372036854775800; // min_val, basically.
 
 pub fn format_item(item: &ScheduledItem, max_width: usize) -> Option<String> {
-    let time_remaining = (Local::now() - item.start_time).num_milliseconds();
+    let time_remaining = (item.start_time - Local::now()).num_milliseconds();
     format_item_with_time_remaining(item, time_remaining, max_width)
 }
 
@@ -17,7 +15,6 @@ fn format_item_with_time_remaining(item: &ScheduledItem, time_remaining: i64, ma
     match time_remaining {
         NEG_ETERNITY..=DURING_MEETING=> Some(format_with_end_time(item, max_width)),
         FIVE_MIN_PAST..=TEN_MIN_TIL  => Some(format_with_location(item, max_width)),
-        AFTER_TEN_MIN..=ETERNITY     => Some(format_without_location(item, max_width)),
         _                            => Some(format_without_location(item, max_width)),
     }
 }
@@ -34,12 +31,10 @@ fn format_with_location(item: &ScheduledItem, max_width: usize) -> String {
 }
 
 fn format_with_end_time(item: &ScheduledItem, max_width: usize) -> String {
-    println!("end_time: {:?}", item.end_time);
     match item.end_time {
-        Some(end_time) => format!("{0:<2$}  ..{1}", item.description, format_time(end_time), max_width + 2),
-        None => format!("{0:<2$}  {1}", item.description, format_time(item.start_time), max_width + 2)
+        Some(end_time) => format!("{0:<2$}  -{1}", item.description, format_time(end_time), max_width + 1),
+        None => format!("{0:<2$}  {1}", item.description, format_time(item.start_time), max_width + 1)
     }
-
 }
 
 fn format_time(time: DateTime<Local>) -> String {
@@ -72,7 +67,7 @@ mod tests {
     #[test]
     fn requests_long_after_start_time_show_end_time() {
         let formatted_str = format_item_with_time_remaining(&item(), DURING_MEETING - 1, 20).unwrap();
-        assert_eq!("A meeting               ..13:13", formatted_str);
+        assert_eq!("A meeting              -13:13", formatted_str);
     }
 
     fn item() -> ScheduledItem {
