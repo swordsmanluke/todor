@@ -46,6 +46,11 @@ impl Scheduler for GoogleScheduler {
 
         Ok(scheduled_items)
     }
+
+    fn add(&mut self, target: String) -> Result<bool, String> {
+        // Not yet implemented
+        Ok(false)
+    }
 }
 
 fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {

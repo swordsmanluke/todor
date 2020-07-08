@@ -36,6 +36,34 @@ impl Scheduler for TodoistScheduler{
 
         Ok(scheduled_items)
     }
+
+    fn add(&mut self, target: String) -> Result<bool, String> {
+        let mut commands = target.split(" ");
+        let target = commands.next().unwrap_or("");
+        let handled = match target {
+            "todo" => {
+                    match commands.next() {
+                        Some(project) => {
+                            println!("Looking for a project named {}", project);
+                            if project == self.project {
+                                println!("Found it! Adding task: {}", target.clone());
+                                match self.client.add(self.project.as_str(), commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ")) {
+                                    Ok(result) => result,
+                                    Err(e) => return Err(e.to_string())
+                                }
+                            } else {
+                                println!("Could not find a project named {}", project);
+                                false
+                            }
+                        },
+                        None => false
+                    }
+            },
+            _ => false
+        };
+
+        Ok(handled)
+    }
 }
 
 fn td_time_to_datetime(due: &Option<TodoistDate>) -> DateTime<Local> {

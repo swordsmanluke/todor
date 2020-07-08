@@ -13,6 +13,9 @@ use crate::schedule_colorer::color_item;
 use std::error::Error;
 use itertools::Itertools;
 use std::cmp::min;
+use std::env::args;
+use std::borrow::Borrow;
+use std::ops::Deref;
 
 mod google_calendar_client;
 mod google_scheduler;
@@ -27,7 +30,43 @@ const MAX_WIDTH: usize = 48; // max size of my terminal window TODO: Take this f
 fn main() -> Result<(), Box<dyn Error>> {
     let cfg = load_scheduler_config()?;
     let schedulers = load_schedulers(cfg)?;
+    let mut args = args();
+    args.next(); // Pop the terminal command off the stack. args 1+ are what we're interested in.
 
+    let cmd = args.next();
+    let parts = args.collect::<Vec<String>>();
+
+    match cmd {
+        None => display_schedule(schedulers)?,
+        Some(command) => execute_command(&command, parts, schedulers)?
+    }
+
+    Ok(())
+}
+
+fn execute_command(cmd: &String, args: Vec<String>, mut schedulers: Vec<Box<dyn Scheduler>>) -> Result<(), String> {
+    match cmd.to_lowercase().as_str() {
+        "add" => {
+            let target = args.join(" ");
+            println!("Adding Todo: {}", target);
+            for sched in schedulers.iter_mut() {
+                if sched.add(target.clone())? { println!("Added to scheduler!"); break; }
+            }
+        },
+        // "ack" => {
+        //     let target = args.join(" ");
+        //     println!("Ack: {}", target);
+        //     for sched in schedulers.iter_mut() {
+        //         if sched.ack(target) { println!("Acked {}", target); break; }
+        //     }
+        // },
+        _ => { println!("Unknown TodoR command: {}", cmd) }
+    }
+
+    Ok(())
+}
+
+fn display_schedule(schedulers: Vec<Box<dyn Scheduler>>) -> Result<(), Box<dyn Error>> {
     let mut items: Vec<ScheduledItem> = schedulers.iter().flat_map(|s| s.get_schedule().unwrap()).collect();
     items.sort_by_key(|f| f.start_time);
 

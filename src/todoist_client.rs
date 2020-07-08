@@ -1,4 +1,6 @@
 use restson::{RestPath, Error, RestClient};
+use chrono::{DateTime, Local};
+use restson::Error::HttpError;
 
 const URL_BASE: &str = "https://api.todoist.com/";
 
@@ -26,6 +28,29 @@ pub struct Task {
     pub url: String
 }
 
+impl Task {
+    pub fn from(pid: usize, s: String, due: DateTime<Local>) -> Task {
+        Task {
+            id: 0,
+            project_id: pid,
+            section_id: 0,
+            content: s,
+            completed: false,
+            label_ids: vec![],
+            parent: None,
+            order: None,
+            priority: 0,
+            due: Some(TodoistDate{
+                string: due.to_rfc3339(),
+                date: due.date().to_string(),
+                datetime: None,
+                timezone: None
+            }),
+            url: "".to_string()
+        }
+    }
+}
+
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct TodoistDate {
     pub string: String,
@@ -40,6 +65,7 @@ pub struct TodoistDate {
 pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
+    fn add(&self, project: &str, task: String) -> Result<bool, Error>;
 }
 
 pub struct TodoistRestClient {
@@ -55,11 +81,15 @@ struct Tasks ( pub Vec<Task> ); // alias to help deserialization
 // get("https://api.todoist.com/rest/v1/projects", headers={"Authorization": "Bearer %s" % your_token}).json()
 
 impl RestPath<()> for Projects {
-    fn get_path(_: ()) -> Result<String,Error> { Ok(String::from("rest/v1/projects")) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/projects".to_string()) }
 }
 
 impl RestPath<()> for Tasks {
-    fn get_path(_: ()) -> Result<String,Error> { Ok(format!("rest/v1/tasks")) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+}
+
+impl RestPath<()> for Task {
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
 }
 
 impl TodoistRestClient {
@@ -91,6 +121,18 @@ impl TodoistClient for TodoistRestClient {
             map(|t| t.to_owned()).
             collect();
         Ok(tasks)
+    }
+
+    fn add(&self, project: &str, task: String) -> Result<bool, Error> {
+        let mut client = self.get_client()?;
+        let projects = self.projects()?;
+        let selected_project = projects.iter().find(|p| p.name == project).
+            expect(format!("No project named {}", project).as_str());
+
+        let data = Task::from(selected_project.id, task, Local::now());
+        client.post((), &data)?;
+
+        Ok(true)
     }
 }
 
