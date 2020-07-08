@@ -51,6 +51,11 @@ impl Scheduler for GoogleScheduler {
         // Not yet implemented
         Ok(false)
     }
+
+    fn remove(&mut self, prefix: String) -> Result<bool, String> {
+        // Not yet implemented
+        Ok(false)
+    }
 }
 
 fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {

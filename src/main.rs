@@ -14,8 +14,6 @@ use std::error::Error;
 use itertools::Itertools;
 use std::cmp::min;
 use std::env::args;
-use std::borrow::Borrow;
-use std::ops::Deref;
 
 mod google_calendar_client;
 mod google_scheduler;
@@ -53,13 +51,20 @@ fn execute_command(cmd: &String, args: Vec<String>, mut schedulers: Vec<Box<dyn 
                 if sched.add(target.clone())? { println!("Added to scheduler!"); break; }
             }
         },
-        // "ack" => {
-        //     let target = args.join(" ");
-        //     println!("Ack: {}", target);
-        //     for sched in schedulers.iter_mut() {
-        //         if sched.ack(target) { println!("Acked {}", target); break; }
-        //     }
-        // },
+        "ack" => {
+            let target = args.join(" ");
+            println!("Ack: {}", target);
+            let mut found = false;
+            for sched in schedulers.iter_mut() {
+                if sched.remove(target.clone())? { found = true; break; }
+            }
+
+            if found {
+                println!("Removed!");
+            } else {
+                println!("Could not find a match!");
+            }
+        },
         _ => { println!("Unknown TodoR command: {}", cmd) }
     }
 

@@ -4,6 +4,8 @@ use chrono::{DateTime, Local, TimeZone, Date};
 use regex::Regex;
 use std::error::Error;
 use std::fs::File;
+use std::ops::Deref;
+use restson::Error::HttpError;
 
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -63,6 +65,43 @@ impl Scheduler for TodoistScheduler{
         };
 
         Ok(handled)
+    }
+
+    fn remove(&mut self, target: String) -> Result<bool, String> {
+        let mut commands = target.split(" ");
+        let target = commands.next().unwrap_or("");
+        Ok(match target {
+            "todo" => {
+                let prefix = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
+                println!("Looking for a task starting with '{}' in project {}", prefix, self.project);
+                let tasks = self.client.tasks(self.project.as_str());
+                match tasks {
+                    Ok(tasks) => {
+                        let task = tasks.iter().find(|t| t.clone().content.starts_with(&prefix));
+                        match task{
+                            Some(t) => {
+                                println!("Found '{}'! Attempting to close it!", t.content);
+                                match self.client.close(t.id) {
+                                    Ok(result) => {
+                                        println!("Closed: {}", result);
+                                        result
+                                    },
+                                    Err(e) => {
+                                        match e {
+                                            HttpError(_code, msg) => { return Err(msg); },
+                                            _ => return Err(e.to_string())
+                                        }
+                                    }
+                                }
+                            },
+                            None => false
+                        }
+                    },
+                    Err(e) => return Err(e.to_string())
+                }
+            },
+            _ => false
+        })
     }
 }
 

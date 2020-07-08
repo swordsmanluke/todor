@@ -20,6 +20,7 @@ impl ScheduledItem {
 pub trait Scheduler {
     fn get_schedule(&self) -> Result<Vec<ScheduledItem>, Box<dyn Error>>;
     fn add(&mut self, target: String) -> Result<bool, String>;
+    fn remove(&mut self, prefix: String) -> Result<bool, String>;
 }
 
 // Configuration loading

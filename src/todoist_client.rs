@@ -1,6 +1,5 @@
 use restson::{RestPath, Error, RestClient};
 use chrono::{DateTime, Local};
-use restson::Error::HttpError;
 
 const URL_BASE: &str = "https://api.todoist.com/";
 
@@ -27,6 +26,9 @@ pub struct Task {
     pub due: Option<TodoistDate>,
     pub url: String
 }
+
+#[derive(Serialize)]
+struct TaskClose{}
 
 impl Task {
     pub fn from(pid: usize, s: String, due: DateTime<Local>) -> Task {
@@ -66,6 +68,7 @@ pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
     fn add(&self, project: &str, task: String) -> Result<bool, Error>;
+    fn close(&self, task_id: usize) ->  Result<bool, Error>;
 }
 
 pub struct TodoistRestClient {
@@ -90,6 +93,10 @@ impl RestPath<()> for Tasks {
 
 impl RestPath<()> for Task {
     fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+}
+
+impl RestPath<usize> for TaskClose {
+    fn get_path(task_id: usize) -> Result<String,Error> { Ok(format!("rest/v1/tasks/{}/close", task_id)) }
 }
 
 impl TodoistRestClient {
@@ -131,6 +138,16 @@ impl TodoistClient for TodoistRestClient {
 
         let data = Task::from(selected_project.id, task, Local::now());
         client.post((), &data)?;
+
+        Ok(true)
+    }
+
+    fn close(&self, task_id: usize) -> Result<bool, Error> {
+        let mut client = self.get_client()?;
+        let task_close = TaskClose{};
+        println!("url: {}", TaskClose::get_path(task_id)?);
+        client.post(task_id, &task_close)?;
+
 
         Ok(true)
     }
