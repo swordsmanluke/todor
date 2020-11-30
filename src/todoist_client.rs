@@ -5,24 +5,24 @@ const URL_BASE: &str = "https://api.todoist.com/";
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Project {
-    comment_count: usize,
-    id: usize,
+    comment_count: u64,
+    id: u64,
     name: String,
-    color: usize,
+    color: u64,
     shared: bool
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Task {
-    pub id: usize,
-    pub project_id: usize,
-    pub section_id: usize,
+    pub id: u64,
+    pub project_id: u64,
+    pub section_id: u64,
     pub content: String,
     pub completed: bool,
-    pub label_ids: Vec<usize>,
-    pub parent: Option<usize>,
-    pub order: Option<usize>,
-    pub priority: usize,
+    pub label_ids: Vec<u64>,
+    pub parent: Option<u64>,
+    pub order: Option<u64>,
+    pub priority: u64,
     pub due: Option<TodoistDate>,
     pub url: String
 }
@@ -31,7 +31,7 @@ pub struct Task {
 struct TaskClose{}
 
 impl Task {
-    pub fn from(pid: usize, s: String, due: DateTime<Local>) -> Task {
+    pub fn from(pid: u64, s: String, due: DateTime<Local>) -> Task {
         Task {
             id: 0,
             project_id: pid,
@@ -68,7 +68,7 @@ pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
     fn add(&self, project: &str, task: String) -> Result<bool, Error>;
-    fn close(&self, task_id: usize) ->  Result<bool, Error>;
+    fn close(&self, task_id: u64) ->  Result<bool, Error>;
 }
 
 pub struct TodoistRestClient {
@@ -95,8 +95,8 @@ impl RestPath<()> for Task {
     fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
 }
 
-impl RestPath<usize> for TaskClose {
-    fn get_path(task_id: usize) -> Result<String,Error> { Ok(format!("rest/v1/tasks/{}/close", task_id)) }
+impl RestPath<u64> for TaskClose {
+    fn get_path(task_id: u64) -> Result<String,Error> { Ok(format!("rest/v1/tasks/{}/close", task_id)) }
 }
 
 impl TodoistRestClient {
@@ -142,7 +142,7 @@ impl TodoistClient for TodoistRestClient {
         Ok(true)
     }
 
-    fn close(&self, task_id: usize) -> Result<bool, Error> {
+    fn close(&self, task_id: u64) -> Result<bool, Error> {
         let mut client = self.get_client()?;
         let task_close = TaskClose{};
         println!("url: {}", TaskClose::get_path(task_id)?);
