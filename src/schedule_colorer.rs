@@ -76,7 +76,7 @@ mod tests {
     fn item(seconds_in_future: i64) -> ScheduledItem {
         let scheduled_time = Local.timestamp_millis_opt(Local::now().timestamp_millis() + seconds_in_future*1000).unwrap();
         let location = Some("location".to_string());
-        ScheduledItem::new("A meeting".to_string(), scheduled_time, None,location)
+        ScheduledItem::new("id".to_string(), "A meeting".to_string(), scheduled_time, None,location)
     }
 
 }

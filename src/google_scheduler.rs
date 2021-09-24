@@ -66,7 +66,7 @@ fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {
     let start_time = event_start_time(e);
     let end_time = event_end_time(e);
     match (start_time, end_time) {
-        (Some(start_time), _) => Some(ScheduledItem::new(description, start_time, end_time, place)),
+        (Some(start_time), _) => Some(ScheduledItem::new(format!("goog:{}", e.i_cal_uid.clone().unwrap()), description, start_time, end_time, place)),
         _ => None
     }
 }

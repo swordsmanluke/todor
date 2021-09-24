@@ -5,6 +5,7 @@ use std::io::Read;
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct ScheduledItem {
+    pub id: String,
     pub description: String,
     pub start_time: DateTime<Local>,
     pub end_time: Option<DateTime<Local>>,
@@ -12,8 +13,8 @@ pub struct ScheduledItem {
 }
 
 impl ScheduledItem {
-    pub fn new(description: String, start_time: DateTime<Local>, end_time: Option<DateTime<Local>>, place: Option<String>) -> ScheduledItem {
-        ScheduledItem{ description, start_time, end_time, place }
+    pub fn new(id: String, description: String, start_time: DateTime<Local>, end_time: Option<DateTime<Local>>, place: Option<String>) -> ScheduledItem {
+        ScheduledItem{ id, description, start_time, end_time, place }
     }
 }
 

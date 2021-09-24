@@ -127,7 +127,9 @@ fn extract_date(td: &TodoistDate) -> Date<Local> {
 }
 
 fn task_to_scheduled_item(t: &Task) -> ScheduledItem {
+    let id = format!("todoist:{}", t.id);
     ScheduledItem::new(
+        id,
         t.content.clone(),
         td_time_to_datetime(&t.due),
         None,

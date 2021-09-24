@@ -74,7 +74,7 @@ mod tests {
         let start_time = Local.ymd(2020, 4, 2).and_hms(12, 1, 13);
         let end_time = Local.ymd(2020, 4, 2).and_hms(13, 13, 13);
         let location = Some("location".to_string());
-        ScheduledItem::new("A meeting".to_string(), start_time, Some(end_time), location)
+        ScheduledItem::new("id".to_string(), "A meeting".to_string(), start_time, Some(end_time), location)
     }
 
 }
