@@ -11,6 +11,7 @@ use std::str::FromStr;
 pub struct GoogleScheduler {
     pub calendar_name: String,
     pub hub: CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, JsonTokenStorage, Client>>,
+    cache: Vec<ScheduledItem>,
 }
 
 pub(crate) fn create_gcal_scheduler(auth_file: String, cal_name: String) -> Result<GoogleScheduler, Box<dyn Error>> {
@@ -23,12 +24,13 @@ impl GoogleScheduler {
         GoogleScheduler {
             calendar_name: cal_name,
             hub,
+            cache: Vec::new()
         }
     }
 }
 
 impl Scheduler for GoogleScheduler {
-    fn get_schedule(&self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
+    fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
         let start_time = Local::now().add(Duration::minutes(-10)).to_rfc3339().clone();
         let end_time = Local::now().add(Duration::days(2)).to_rfc3339();
 
@@ -38,13 +40,17 @@ impl Scheduler for GoogleScheduler {
             single_events(true).
             doit()?.1;
 
-        let scheduled_items = events.items.unwrap().iter().
+        self.cache = events.items.unwrap().iter().
             map(|t| cal_event_to_scheduled_item(t)).
             filter(|t| t.is_some()).
             map(|t| t.unwrap()).
             collect();
 
-        Ok(scheduled_items)
+        Ok(())
+    }
+
+    fn schedule(&self) -> Vec<ScheduledItem> {
+        self.cache.clone()
     }
 
     fn add(&mut self, target: String) -> Result<bool, String> {

@@ -4,7 +4,6 @@ use chrono::{DateTime, Local, TimeZone, Date};
 use regex::Regex;
 use std::error::Error;
 use std::fs::File;
-use std::ops::Deref;
 use restson::Error::HttpError;
 
 
@@ -16,6 +15,7 @@ pub struct ApiToken {
 pub struct TodoistScheduler {
     client: Box<dyn TodoistClient>,
     project: String,
+    cache: Vec<ScheduledItem>
 }
 
 pub(crate) fn create_todoist_scheduler(name: String, project: String) -> Result<TodoistScheduler, Box<dyn Error>> {
@@ -27,16 +27,20 @@ pub(crate) fn create_todoist_scheduler(name: String, project: String) -> Result<
 
 impl TodoistScheduler {
     pub fn new(client: Box<dyn TodoistClient>, project: String) -> Self {
-        TodoistScheduler { client, project }
+        TodoistScheduler { client, project, cache: Vec::new() }
     }
 }
 
 impl Scheduler for TodoistScheduler{
-    fn get_schedule(&self) -> Result<Vec<ScheduledItem>, Box<dyn Error>> {
-        let scheduled_items = self.client.tasks(self.project.as_str())?.iter().
+    fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
+        self.cache = self.client.tasks(self.project.as_str())?.iter().
             map(|t| task_to_scheduled_item(t)).collect();
 
-        Ok(scheduled_items)
+        Ok(())
+    }
+
+    fn schedule(&self) -> Vec<ScheduledItem> {
+        self.cache.clone()
     }
 
     fn add(&mut self, target: String) -> Result<bool, String> {
