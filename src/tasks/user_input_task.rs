@@ -43,13 +43,13 @@ impl UserInputTask {
             Key::Ctrl('u') => { self.user_input.clear(); }
             Key::Char(c) => { self.user_input.push(c); },
             // Not implemented below here
-            Key::Esc => { /* Prompt for exit */ }
+            Key::Esc => { self.ui_tx.send(UICommand::ClearSelection); }
 
             // Arrows
             Key::Left => {}
             Key::Right => {}
-            Key::Up => {}
-            Key::Down => {}
+            Key::Up => { self.ui_tx.send(UICommand::SelectPrev); }
+            Key::Down => { self.ui_tx.send(UICommand::SelectNext); }
 
             // Scrolling
             Key::Home => {}

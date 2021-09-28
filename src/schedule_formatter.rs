@@ -6,9 +6,21 @@ const FIVE_MIN_PAST: i64 = -5 * 60 * 1000;
 const TEN_MIN_TIL: i64 = 10 * 60 * 1000;
 const NEG_ETERNITY: i64 = -9223372036854775800; // min_val, basically.
 
-pub fn format_item(item: &ScheduledItem, max_width: usize) -> Option<String> {
+pub fn format_item(item: &ScheduledItem, is_selected: bool, max_width: usize) -> Option<String> {
     let time_remaining = (item.start_time - Local::now()).num_milliseconds();
-    format_item_with_time_remaining(item, time_remaining, max_width)
+    let formatted = format_item_with_time_remaining(item, time_remaining, max_width);
+    if is_selected {
+        format_selection(formatted, max_width)
+    } else {
+        formatted
+    }
+}
+
+fn format_selection(formatted_item: Option<String>, max_width: usize) -> Option<String> {
+    match formatted_item {
+        None => None,
+        Some(s) => Some(format!(">  {0:<width$}", s, width=max_width))
+    }
 }
 
 fn format_item_with_time_remaining(item: &ScheduledItem, time_remaining: i64, max_width: usize) -> Option<String> {

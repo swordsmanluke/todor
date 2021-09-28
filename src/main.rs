@@ -10,7 +10,7 @@ use crate::scheduled_item::{ScheduledItem, Scheduler, load_scheduler_config};
 use crate::schedule_colorer::color_item;
 use std::error::Error;
 use itertools::Itertools;
-use std::cmp::min;
+use std::cmp::{min, max};
 use std::thread;
 use std::sync::mpsc::{channel, Sender};
 use crate::commands::{UICommand, ScheduleCommand};
@@ -53,14 +53,41 @@ fn main() -> Result<(), Box<dyn Error>> {
     // master I/O loop
     let mut command_executor = CommandExecutor::new(cmd_tx);
     let mut user_input = String::new();
+    let mut schedules = vec![];
+    let mut selected_item = -1;
     loop {
         match ui_rx.recv() {
             Ok(cmd) => {
                 info!("Processing command: {:?}", cmd);
                 match cmd {
                     UICommand::UpdateUserInput(new_input) => { user_input = new_input; }
-                    UICommand::Schedules(sched) => { display_schedule(sched, &mut stdout); }
-                    UICommand::Execute(command) => { command_executor.execute_command(&command); }
+
+                    UICommand::Schedules(sched) => {
+                        schedules = sched;
+                        display_schedule(&schedules, selected_item, &mut stdout);
+                    }
+
+                    UICommand::Execute(command) => {
+                        match command.to_lowercase().as_str() {
+                            "exit" => break,
+                            _ => { command_executor.execute_command(&command); }
+                        }
+                    }
+
+                    UICommand::ClearSelection => {
+                        selected_item = -1;
+                        display_schedule(&schedules, selected_item, &mut stdout);
+                    }
+
+                    UICommand::SelectPrev => {
+                        selected_item = max(-1, selected_item - 1);
+                        display_schedule(&schedules, selected_item, &mut stdout) }
+
+                    UICommand::SelectNext => {
+                        selected_item = min((schedules.len() as i32 - 1), selected_item + 1);
+                        display_schedule(&schedules, selected_item, &mut stdout)
+                    }
+
                     UICommand::Exit => { break; } // time to quit!
                 }
             }
@@ -87,7 +114,7 @@ fn display_prompt(user_input: String, stdout: &mut dyn std::io::Write) {
     stdout.flush();
 }
 
-fn display_schedule(items: Vec<ScheduledItem>, stdout: &mut dyn std::io::Write) -> () {
+fn display_schedule(items: &Vec<ScheduledItem>, selected_item: i32, stdout: &mut dyn std::io::Write) -> () {
     // Clear the screen and go to the top line before we start
     stdout.write(b"\x1B[2J\x1B[1;1H");
 
@@ -99,7 +126,7 @@ fn display_schedule(items: Vec<ScheduledItem>, stdout: &mut dyn std::io::Write) 
 
     // TODO: Group everything from a past date into a general "OVERDUE" bucket.
     let grouped_by_date = items.into_iter().group_by(|item| item.start_time.date());
-
+    let mut item_count = 0;
     for (date, items_for_date) in &grouped_by_date
     {
         let ds: String = date.to_string();
@@ -110,10 +137,11 @@ fn display_schedule(items: Vec<ScheduledItem>, stdout: &mut dyn std::io::Write) 
 
         // Print the date's schedule
         for item in item_vec {
-            match format_item(&item, max_width) {
+            match format_item(&item, item_count == selected_item, max_width) {
                 Some(s) => { write!(stdout, "  {}\n\r", color_item(&item, &s)); },
                 None => {}
             }
+            item_count += 1;
         }
         write!(stdout, "\n\r");
     }

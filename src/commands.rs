@@ -2,10 +2,13 @@ use crate::scheduled_item::ScheduledItem;
 
 #[derive(Clone, Debug)]
 pub enum UICommand {
+    Schedules(Vec<ScheduledItem>),
     UpdateUserInput(String),
-    Exit,
     Execute(String),
-    Schedules(Vec<ScheduledItem>)
+    ClearSelection,
+    SelectPrev,
+    SelectNext,
+    Exit
 }
 
 #[derive(Clone, Debug)]
