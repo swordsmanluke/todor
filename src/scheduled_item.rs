@@ -3,22 +3,31 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Serialize,Deserialize,Debug,Clone)]
+#[derive(Debug,Clone)]
 pub struct ScheduledItem {
     pub id: String,
+    pub scheduler: String,
+    pub item_type: ScheduleItemType,
     pub description: String,
     pub start_time: DateTime<Local>,
     pub end_time: Option<DateTime<Local>>,
     pub place: Option<String>
 }
 
+#[derive(Debug,Clone)]
+pub enum ScheduleItemType {
+    Todo,
+    Calendar
+}
+
 impl ScheduledItem {
-    pub fn new(id: String, description: String, start_time: DateTime<Local>, end_time: Option<DateTime<Local>>, place: Option<String>) -> ScheduledItem {
-        ScheduledItem{ id, description, start_time, end_time, place }
+    pub fn new(id: String, scheduler: String, item_type: ScheduleItemType, description: String, start_time: DateTime<Local>, end_time: Option<DateTime<Local>>, place: Option<String>) -> ScheduledItem {
+        ScheduledItem{ id, scheduler, item_type, description, start_time, end_time, place }
     }
 }
 
 pub trait Scheduler {
+    fn id(&self) -> String;
     fn refresh(&mut self) -> Result<(), Box<dyn Error>>;
     fn schedule(&self) -> Vec<ScheduledItem>;
     fn add(&mut self, target: String) -> Result<bool, String>;

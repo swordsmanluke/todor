@@ -1,7 +1,7 @@
 use google_calendar3::{CalendarHub, Event, EventDateTime};
 use hyper::Client;
 use yup_oauth2::{Authenticator, DefaultAuthenticatorDelegate};
-use crate::scheduled_item::{ScheduledItem, Scheduler};
+use crate::scheduled_item::{ScheduledItem, Scheduler, ScheduleItemType};
 use chrono::{DateTime, Local, Duration, TimeZone, Datelike, NaiveDate};
 use std::ops::Add;
 use std::error::Error;
@@ -30,6 +30,10 @@ impl GoogleScheduler {
 }
 
 impl Scheduler for GoogleScheduler {
+    fn id(&self) -> String {
+        format!("google:{}", self.calendar_name)
+    }
+
     fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
         let start_time = Local::now().add(Duration::minutes(-10)).to_rfc3339().clone();
         let end_time = Local::now().add(Duration::days(2)).to_rfc3339();
@@ -41,7 +45,7 @@ impl Scheduler for GoogleScheduler {
             doit()?.1;
 
         self.cache = events.items.unwrap().iter().
-            map(|t| cal_event_to_scheduled_item(t)).
+            map(|t| cal_event_to_scheduled_item(self.calendar_name.clone(),  t)).
             filter(|t| t.is_some()).
             map(|t| t.unwrap()).
             collect();
@@ -64,7 +68,7 @@ impl Scheduler for GoogleScheduler {
     }
 }
 
-fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {
+fn cal_event_to_scheduled_item(account_id: String, e: &Event) -> Option<ScheduledItem> {
 
     let description = e.summary.clone().unwrap_or("no desc".to_string());
     let place = format_location(e.location.clone());
@@ -72,7 +76,13 @@ fn cal_event_to_scheduled_item(e: &Event) -> Option<ScheduledItem> {
     let start_time = event_start_time(e);
     let end_time = event_end_time(e);
     match (start_time, end_time) {
-        (Some(start_time), _) => Some(ScheduledItem::new(format!("goog:{}", e.i_cal_uid.clone().unwrap()), description, start_time, end_time, place)),
+        (Some(start_time), _) => Some(ScheduledItem::new(e.i_cal_uid.clone().unwrap_or("".to_string()),
+                                                         format!("google:{}", account_id),
+                                                         ScheduleItemType::Calendar,
+                                                         description,
+                                                         start_time,
+                                                         end_time,
+                                                         place)),
         _ => None
     }
 }

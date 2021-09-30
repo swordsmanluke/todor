@@ -39,7 +39,6 @@ impl UserInputTask {
                 self.user_input.clear();
             },
             Key::Backspace => { self.user_input.truncate(max(0, self.user_input.len() - 1)); }
-            Key::Delete => {/* TODO: Add delete support once we have arrow keys */}
             Key::Ctrl('c') |
             Key::Ctrl('d') => { self.ui_tx.send(UICommand::Exit)?; },
             Key::Ctrl('u') => { self.user_input.clear(); }
@@ -50,7 +49,7 @@ impl UserInputTask {
             Key::Down => { self.ui_tx.send(UICommand::SelectNext)?; }
 
             // Not implemented below here
-
+            Key::Delete => {/* TODO: Add delete support once we have arrow keys */}
             // Arrows
             Key::Left => {}
             Key::Right => {}

@@ -6,6 +6,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use crate::commands::{UICommand, ScheduleCommand};
 use std::error::Error;
 use std::time::Duration;
+use log::info;
 
 impl MasterScheduler {
     pub fn new(ui_sched_tx: Sender<UICommand>, cmd_rx: Receiver<ScheduleCommand>) -> Self {
@@ -26,6 +27,14 @@ impl MasterScheduler {
                 Ok(command) => {
                     match command {
                         ScheduleCommand::Refresh => { self.refresh()?; }
+                        ScheduleCommand::AddTodo(account_id, task) => {
+                            info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
+                            match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
+                                None => { info!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>())}
+                                Some(scheduler) => { scheduler.add(task); }
+                            }
+                        }
+                        ScheduleCommand::AddCal(account_id, task, time) => {}
                     }
                 }
                 Err(_) => {

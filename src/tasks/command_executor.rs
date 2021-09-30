@@ -14,7 +14,8 @@ impl CommandExecutor {
 
         match cmd.to_lowercase().as_str() {
             "" => {}, // User just hit <enter> on an empty string.
-            "refresh" => { self.cmd_tx.send(ScheduleCommand::Refresh)? },
+            "refresh" => { self.cmd_tx.send(ScheduleCommand::Refresh)?; },
+            "add" => { self.cmd_tx.send(ScheduleCommand::AddTodo("todo:Inbox".to_string(), parts.collect::<Vec<_>>().join(" ")))?; }
             _ => { info!("Unknown TodoR command: {}", cmd); }
         }
 

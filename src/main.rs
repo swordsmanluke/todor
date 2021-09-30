@@ -13,7 +13,7 @@ use itertools::Itertools;
 use std::cmp::{min, max};
 use std::thread;
 use std::sync::mpsc::{channel};
-use crate::commands::{UICommand};
+use crate::commands::{UICommand, ScheduleCommand};
 use std::io::{stdout, Write};
 use termion::raw::IntoRawMode;
 use termion::cursor::Goto;
@@ -127,7 +127,6 @@ fn display_schedule(items: &Vec<ScheduledItem>, selected_item: i32, stdout: &mut
     // max_width is determined by the widest description or MAX_WIDTH, whichever is smaller.
     let max_width = min(MAX_WIDTH, items.iter().map(|i| i.description.len()).max().unwrap_or(MAX_WIDTH));
 
-    // TODO: Group everything from a past date into a general "OVERDUE" bucket.
     let grouped_by_date = items.into_iter().group_by(|item| item.start_time.date());
     let mut item_count = 0;
 

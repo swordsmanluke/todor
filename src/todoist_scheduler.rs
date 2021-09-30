@@ -1,4 +1,4 @@
-use crate::scheduled_item::{ScheduledItem, Scheduler};
+use crate::scheduled_item::{ScheduledItem, Scheduler, ScheduleItemType};
 use crate::todoist_client::*;
 use chrono::{DateTime, Local, TimeZone, Date};
 use regex::Regex;
@@ -32,9 +32,13 @@ impl TodoistScheduler {
 }
 
 impl Scheduler for TodoistScheduler{
+    fn id(&self) -> String {
+        format!("todo:{}", self.project)
+    }
+
     fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
         self.cache = self.client.tasks(self.project.as_str())?.iter().
-            map(|t| task_to_scheduled_item(t)).collect();
+            map(|t| task_to_scheduled_item(&self.project, t)).collect();
 
         Ok(())
     }
@@ -130,10 +134,12 @@ fn extract_date(td: &TodoistDate) -> Date<Local> {
     }
 }
 
-fn task_to_scheduled_item(t: &Task) -> ScheduledItem {
+fn task_to_scheduled_item(account_id: &String, t: &Task) -> ScheduledItem {
     let id = format!("todoist:{}", t.id);
     ScheduledItem::new(
         id,
+        format!("todoist:{}", account_id),
+        ScheduleItemType::Todo,
         t.content.clone(),
         td_time_to_datetime(&t.due),
         None,

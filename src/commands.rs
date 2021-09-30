@@ -1,4 +1,5 @@
 use crate::scheduled_item::ScheduledItem;
+use chrono::{DateTime, Local};
 
 #[derive(Clone, Debug)]
 pub enum UICommand {
@@ -14,4 +15,6 @@ pub enum UICommand {
 #[derive(Clone, Debug)]
 pub enum ScheduleCommand {
     Refresh,
+    AddTodo(String, String),
+    AddCal(String, String, DateTime<Local>)
 }
