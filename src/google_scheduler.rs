@@ -113,12 +113,18 @@ fn convert_event_time(time: EventDateTime) -> DateTime<Local> {
         }
     };
 
-    match datetime {
+    let final_date = match datetime {
         Some(dt) => dt,
         None => match all_day {
             Some(ad) => ad.and_hms(23, 59, 59),
             None => Local::now()
         }
+    };
+
+    if final_date.date() >= Local::now().date() {
+        final_date
+    } else {
+        Local::now().date().and_hms(23, 59, 59)
     }
 }
 

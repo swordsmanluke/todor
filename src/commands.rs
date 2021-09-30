@@ -14,5 +14,4 @@ pub enum UICommand {
 #[derive(Clone, Debug)]
 pub enum ScheduleCommand {
     Refresh,
-    Exit
 }

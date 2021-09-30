@@ -1,5 +1,5 @@
 use crate::tasks::UserInputTask;
-use std::io::{stdin, Read};
+use std::io::{stdin};
 use crate::commands::UICommand;
 use std::sync::mpsc::Sender;
 use termion::input::TermRead;
@@ -15,41 +15,45 @@ impl UserInputTask {
         }
     }
 
-    pub fn run(&mut self) {
-        let mut stdin = stdin();
+    pub fn run(&mut self) -> anyhow::Result<()>{
+        let stdin = stdin();
 
         for key in stdin.keys() {
             match key {
                 Ok(key) => {
-                    self.process_input(key);
-                    self.ui_tx.send(UICommand::UpdateUserInput(self.user_input.clone()));
+                    self.process_input(key)?;
+                    self.ui_tx.send(UICommand::UpdateUserInput(self.user_input.clone()))?;
                 }
                 Err(e) => { error!("{}", e); }
             }
         }
+
+        Ok(())
     }
 
-    fn process_input(&mut self, key: Key) {
+    fn process_input(&mut self, key: Key) -> anyhow::Result<()>{
         match key {
             Key::Char('\r') |
             Key::Char('\n') => {
-                self.ui_tx.send(UICommand::Execute(self.user_input.clone()));
+                self.ui_tx.send(UICommand::Execute(self.user_input.clone()))?;
                 self.user_input.clear();
             },
             Key::Backspace => { self.user_input.truncate(max(0, self.user_input.len() - 1)); }
             Key::Delete => {/* TODO: Add delete support once we have arrow keys */}
             Key::Ctrl('c') |
-            Key::Ctrl('d') => { self.ui_tx.send(UICommand::Exit); },
+            Key::Ctrl('d') => { self.ui_tx.send(UICommand::Exit)?; },
             Key::Ctrl('u') => { self.user_input.clear(); }
             Key::Char(c) => { self.user_input.push(c); },
+
+            Key::Esc => { self.ui_tx.send(UICommand::ClearSelection)?; }
+            Key::Up => { self.ui_tx.send(UICommand::SelectPrev)?; }
+            Key::Down => { self.ui_tx.send(UICommand::SelectNext)?; }
+
             // Not implemented below here
-            Key::Esc => { self.ui_tx.send(UICommand::ClearSelection); }
 
             // Arrows
             Key::Left => {}
             Key::Right => {}
-            Key::Up => { self.ui_tx.send(UICommand::SelectPrev); }
-            Key::Down => { self.ui_tx.send(UICommand::SelectNext); }
 
             // Scrolling
             Key::Home => {}
@@ -64,5 +68,7 @@ impl UserInputTask {
 
             _ => {}
         }
+
+        Ok(())
     }
 }

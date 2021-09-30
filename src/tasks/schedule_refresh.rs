@@ -2,8 +2,7 @@ use crate::scheduled_item::{Scheduler, ScheduleConfig, load_scheduler_config};
 use crate::tasks::MasterScheduler;
 use crate::google_scheduler::create_gcal_scheduler;
 use crate::todoist_scheduler::create_todoist_scheduler;
-use std::sync::mpsc::{Sender, Receiver, RecvTimeoutError};
-use std::thread;
+use std::sync::mpsc::{Sender, Receiver};
 use crate::commands::{UICommand, ScheduleCommand};
 use std::error::Error;
 use std::time::Duration;
@@ -19,15 +18,14 @@ impl MasterScheduler {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> anyhow::Result<()>{
         self.refresh().unwrap();
 
         loop {
             match self.cmd_rx.recv_timeout(Duration::from_secs(60)) {
                 Ok(command) => {
                     match command {
-                        ScheduleCommand::Refresh => { self.refresh(); }
-                        ScheduleCommand::Exit => { break; }
+                        ScheduleCommand::Refresh => { self.refresh()?; }
                     }
                 }
                 Err(_) => {
@@ -38,16 +36,18 @@ impl MasterScheduler {
                     // The timing could get thrown off by other command processing
                     // but I don't think it'll be a big deal in practice, given the
                     // relative paucity of commands vs the longer waiting periods
-                    self.refresh();
+                    self.refresh()?;
                 }
             }
         }
+
+        Ok(())
     }
 
     fn refresh(&mut self) -> anyhow::Result<()>{
         self.schedulers.
             iter_mut().
-            for_each(|s| { s.refresh(); });
+            for_each(|s| { s.refresh().unwrap(); });
 
         let final_schedule = self.schedulers.
             iter().
