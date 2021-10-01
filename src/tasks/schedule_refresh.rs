@@ -3,7 +3,7 @@ use crate::tasks::MasterScheduler;
 use crate::google_scheduler::create_gcal_scheduler;
 use crate::todoist_scheduler::create_todoist_scheduler;
 use std::sync::mpsc::{Sender, Receiver};
-use crate::commands::{UICommand, ScheduleCommand};
+use crate::commands::{UICommand, ScheduleCommand, SchedulerAccountId};
 use std::error::Error;
 use std::time::Duration;
 use log::info;
@@ -31,19 +31,24 @@ impl MasterScheduler {
                     match command {
                         ScheduleCommand::Refresh => { self.refresh()?; }
                         ScheduleCommand::AddTodo(account_id, task) => {
-                            info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
+                            self.add_todo_task(account_id, &task)
+                        }
+                        ScheduleCommand::AddCal(account_id, task, time) => {}
+                        ScheduleCommand::CloseTodo(account_id, task) => {
+
                             match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
-                                None => { info!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>())}
+                                None => {info!("Could not find scheduler {} in {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());}
                                 Some(scheduler) => {
-                                    let mut due_date = match DateParser::parse(&task) {
-                                        None => { Local::today().and_hms(23, 59, 59) }
-                                        Some(d) => { Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
-                                    };
-                                    scheduler.add(task, Some(due_date));
+                                    info!("Removing task {}", task);
+                                    if let Ok(true) = scheduler.remove(&task) {
+                                        self.refresh();
+                                        self.ui_sched_tx.send(UICommand::ClearSelection);
+                                    } else {
+                                        // TODO: Display an error message
+                                    }
                                 }
                             }
                         }
-                        ScheduleCommand::AddCal(account_id, task, time) => {}
                     }
                 }
                 Err(_) => {
@@ -62,15 +67,32 @@ impl MasterScheduler {
         Ok(())
     }
 
+    fn add_todo_task(&mut self, account_id: SchedulerAccountId, task: &String) {
+        info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
+        match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
+            None => { info!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>()) }
+            Some(scheduler) => {
+                // TODO: Replace this with the 'to_event' parser... as soon as I understand how to get data OUT of it.
+                let mut due_date = match DateParser::parse(&task) {
+                    None => { Local::today().and_hms(23, 59, 59) }
+                    Some(d) => { Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
+                };
+                scheduler.add(task, Some(due_date));
+            }
+        }
+    }
+
     fn refresh(&mut self) -> anyhow::Result<()>{
         self.schedulers.
             iter_mut().
             for_each(|s| { s.refresh().unwrap(); });
 
-        let final_schedule = self.schedulers.
+        let mut final_schedule = self.schedulers.
             iter().
             flat_map(|s| s.schedule()).
-            collect();
+            collect::<Vec<_>>();
+
+        final_schedule.sort_by_key(|s| s.start_time);
 
         self.ui_sched_tx.send(UICommand::Schedules(final_schedule))?;
 

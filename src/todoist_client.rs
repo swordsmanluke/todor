@@ -145,9 +145,7 @@ impl TodoistClient for TodoistRestClient {
     fn close(&self, task_id: u64) -> Result<bool, Error> {
         let mut client = self.get_client()?;
         let task_close = TaskClose{};
-        println!("url: {}", TaskClose::get_path(task_id)?);
         client.post(task_id, &task_close)?;
-
 
         Ok(true)
     }

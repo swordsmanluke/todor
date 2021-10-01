@@ -71,7 +71,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     UICommand::Execute(command) => {
                         match command.to_lowercase().as_str() {
                             "exit" => break,
-                            _ => { command_executor.execute_command(&command)?; }
+                            _ => {
+                                let item = match selected_item {
+                                    -1 => { None },
+                                    _ => { schedules.get(selected_item as usize) }
+                                };
+                                info!("Selected item: {} -> {:?}", selected_item, item);
+                                command_executor.execute_command(&command, item)?;
+                            }
                         }
                     }
 

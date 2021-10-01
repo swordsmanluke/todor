@@ -38,7 +38,7 @@ impl TodoistScheduler {
 
 impl Scheduler for TodoistScheduler{
     fn id(&self) -> String {
-        format!("todo:{}", self.project)
+        format!("todoist:{}", self.project)
     }
 
     fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
@@ -52,7 +52,7 @@ impl Scheduler for TodoistScheduler{
         self.cache.clone()
     }
 
-    fn add(&mut self, target: String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
         let mut commands = target.split(" ");
         let target = commands.next().unwrap_or("");
         let handled = match target {
@@ -71,41 +71,38 @@ impl Scheduler for TodoistScheduler{
         Ok(handled)
     }
 
-    fn remove(&mut self, target: String) -> Result<bool, String> {
-        let mut commands = target.split(" ");
-        let target = commands.next().unwrap_or("");
-        Ok(match target {
-            "todo" => {
-                let prefix = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
-                println!("Looking for a task starting with '{}' in project {}", prefix, self.project);
-                let tasks = self.client.tasks(self.project.as_str());
-                match tasks {
-                    Ok(tasks) => {
-                        let task = tasks.iter().find(|t| t.clone().content.starts_with(&prefix));
-                        match task{
-                            Some(t) => {
-                                println!("Found '{}'! Attempting to close it!", t.content);
-                                match self.client.close(t.id) {
-                                    Ok(result) => {
-                                        println!("Closed: {}", result);
-                                        result
-                                    },
-                                    Err(e) => {
-                                        match e {
-                                            HttpError(_code, msg) => { return Err(msg); },
-                                            _ => return Err(e.to_string())
-                                        }
-                                    }
-                                }
+    fn remove(&mut self, target: &String) -> Result<bool, String> {
+        info!("Looking for a task '{}' in project {}", target, self.project);
+        let tasks = self.client.tasks(self.project.as_str());
+        let res = match tasks {
+            Ok(tasks) => {
+                let task = tasks.iter().find(|t| t.clone().content == *target);
+                match task{
+                    Some(t) => {
+                        info!("Found '{}'! Attempting to close it!", t.content);
+                        match self.client.close(t.id) {
+                            Ok(result) => {
+                                info!("Closed {}: {}", t.content, result);
+                                result
                             },
-                            None => false
+                            Err(e) => {
+                                match e {
+                                    HttpError(_code, msg) => { return Err(msg); },
+                                    _ => return Err(e.to_string())
+                                }
+                            }
                         }
                     },
-                    Err(e) => return Err(e.to_string())
+                    None => {
+                        info!("Could not find task {:?} in {:?}", task, tasks);
+                        false
+                    }
                 }
             },
-            _ => false
-        })
+            Err(e) => return Err(e.to_string())
+        };
+
+        Ok(res)
     }
 }
 

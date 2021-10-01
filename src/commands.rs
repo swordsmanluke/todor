@@ -12,9 +12,12 @@ pub enum UICommand {
     Exit
 }
 
+pub type SchedulerAccountId = String;
+
 #[derive(Clone, Debug)]
 pub enum ScheduleCommand {
     Refresh,
-    AddTodo(String, String),
-    AddCal(String, String, DateTime<Local>)
+    AddTodo(SchedulerAccountId, String),
+    CloseTodo(SchedulerAccountId, String),
+    AddCal(SchedulerAccountId, String, DateTime<Local>)
 }
