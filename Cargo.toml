@@ -25,6 +25,10 @@ serde_derive = "^1.0"
 # Terminal control
 termion = "1.5.6"
 
+# Date parsing
+date_time_parser = "0.1.1"
+event_parser = "0.1.1"
+
 # Easier result handling
 anyhow ="1.0.44"
 

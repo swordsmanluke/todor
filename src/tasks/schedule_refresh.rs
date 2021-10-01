@@ -7,6 +7,9 @@ use crate::commands::{UICommand, ScheduleCommand};
 use std::error::Error;
 use std::time::Duration;
 use log::info;
+use date_time_parser::DateParser;
+use chrono::{Local, TimeZone, NaiveTime};
+use itertools::Itertools;
 
 impl MasterScheduler {
     pub fn new(ui_sched_tx: Sender<UICommand>, cmd_rx: Receiver<ScheduleCommand>) -> Self {
@@ -31,7 +34,13 @@ impl MasterScheduler {
                             info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
                             match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
                                 None => { info!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>())}
-                                Some(scheduler) => { scheduler.add(task); }
+                                Some(scheduler) => {
+                                    let mut due_date = match DateParser::parse(&task) {
+                                        None => { Local::today().and_hms(23, 59, 59) }
+                                        Some(d) => { Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
+                                    };
+                                    scheduler.add(task, Some(due_date));
+                                }
                             }
                         }
                         ScheduleCommand::AddCal(account_id, task, time) => {}

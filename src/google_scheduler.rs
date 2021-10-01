@@ -57,7 +57,7 @@ impl Scheduler for GoogleScheduler {
         self.cache.clone()
     }
 
-    fn add(&mut self, target: String) -> Result<bool, String> {
+    fn add(&mut self, target: String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
         // Not yet implemented
         Ok(false)
     }

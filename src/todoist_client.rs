@@ -67,7 +67,7 @@ pub struct TodoistDate {
 pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
-    fn add(&self, project: &str, task: String) -> Result<bool, Error>;
+    fn add(&self, project: &str, task: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
     fn close(&self, task_id: u64) ->  Result<bool, Error>;
 }
 
@@ -130,13 +130,13 @@ impl TodoistClient for TodoistRestClient {
         Ok(tasks)
     }
 
-    fn add(&self, project: &str, task: String) -> Result<bool, Error> {
+    fn add(&self, project: &str, task: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error> {
         let mut client = self.get_client()?;
         let projects = self.projects()?;
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        let data = Task::from(selected_project.id, task, Local::now());
+        let data = Task::from(selected_project.id, task, due_date.unwrap_or(Local::now()));
         client.post((), &data)?;
 
         Ok(true)

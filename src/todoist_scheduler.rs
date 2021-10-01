@@ -1,10 +1,15 @@
 use crate::scheduled_item::{ScheduledItem, Scheduler, ScheduleItemType};
 use crate::todoist_client::*;
-use chrono::{DateTime, Local, TimeZone, Date};
+use chrono::{DateTime, Duration, Local, TimeZone, Date, NaiveDate, NaiveTime};
 use regex::Regex;
 use std::error::Error;
 use std::fs::File;
 use restson::Error::HttpError;
+use log::info;
+
+use event_parser::to_event;
+use date_time_parser::DateParser;
+// use icalendar::{Component, Event};
 
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -47,27 +52,18 @@ impl Scheduler for TodoistScheduler{
         self.cache.clone()
     }
 
-    fn add(&mut self, target: String) -> Result<bool, String> {
+    fn add(&mut self, target: String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
         let mut commands = target.split(" ");
         let target = commands.next().unwrap_or("");
         let handled = match target {
             "todo" => {
-                    match commands.next() {
-                        Some(project) => {
-                            println!("Looking for a project named {}", project);
-                            if project == self.project {
-                                println!("Found it! Adding task: {}", target.clone());
-                                match self.client.add(self.project.as_str(), commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ")) {
-                                    Ok(result) => result,
-                                    Err(e) => return Err(e.to_string())
-                                }
-                            } else {
-                                println!("Could not find a project named {}", project);
-                                false
-                            }
-                        },
-                        None => false
-                    }
+                info!("Adding to Todoist project '{}'", self.project);
+                let description = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
+
+                match self.client.add(self.project.as_str(), description, due_date) {
+                    Ok(result) => result,
+                    Err(e) => return Err(e.to_string())
+                }
             },
             _ => false
         };

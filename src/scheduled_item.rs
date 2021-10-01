@@ -30,7 +30,7 @@ pub trait Scheduler {
     fn id(&self) -> String;
     fn refresh(&mut self) -> Result<(), Box<dyn Error>>;
     fn schedule(&self) -> Vec<ScheduledItem>;
-    fn add(&mut self, target: String) -> Result<bool, String>;
+    fn add(&mut self, target: String, due_date: Option<DateTime<Local>>) -> Result<bool, String>;
     fn remove(&mut self, prefix: String) -> Result<bool, String>;
 }
 

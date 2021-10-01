@@ -4,6 +4,7 @@ extern crate serde_derive;
 #[macro_use] extern crate lazy_static;
 extern crate regex;
 extern crate colored; // not needed in Rust 2018
+extern crate event_parser;
 
 use crate::schedule_formatter::*;
 use crate::scheduled_item::{ScheduledItem};
