@@ -1,16 +1,11 @@
 use crate::scheduled_item::{ScheduledItem, Scheduler, ScheduleItemType};
 use crate::todoist_client::*;
-use chrono::{DateTime, Duration, Local, TimeZone, Date, NaiveDate, NaiveTime};
+use chrono::{DateTime, Local, TimeZone, Date};
 use regex::Regex;
 use std::error::Error;
 use std::fs::File;
 use restson::Error::HttpError;
 use log::info;
-
-use event_parser::to_event;
-use date_time_parser::DateParser;
-// use icalendar::{Component, Event};
-
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct ApiToken {

@@ -14,7 +14,7 @@ use itertools::Itertools;
 use std::cmp::{min, max};
 use std::thread;
 use std::sync::mpsc::{channel};
-use crate::commands::{UICommand, ScheduleCommand};
+use crate::commands::UICommand;
 use std::io::{stdout, Write};
 use termion::raw::IntoRawMode;
 use termion::cursor::Goto;

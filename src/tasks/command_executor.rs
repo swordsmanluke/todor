@@ -13,15 +13,16 @@ impl CommandExecutor {
         let mut parts = command.trim().split_ascii_whitespace();
         let cmd = parts.next().unwrap_or("");
 
-        // TODO: Determine the calendar/todo project via selected item OR command text
-        //       If indeterminable, prompt the user for it.
-
         match cmd.to_lowercase().as_str() {
             "" => {}, // User just hit <enter> on an empty string.
             "refresh" => { self.cmd_tx.send(ScheduleCommand::Refresh)?; },
-            "add" => { self.cmd_tx.send(ScheduleCommand::AddTodo("todo:Inbox".to_string(), parts.collect::<Vec<_>>().join(" ")))?; }
-            "ack" |
-            "close" => {
+            "add" => {
+                // TODO: Determine scheduler by prompting user... to select one?
+                let scheduler_id = "todo:Inbox".to_string();
+                let task = parts.collect::<Vec<_>>().join(" ");
+                self.cmd_tx.send(ScheduleCommand::Add(scheduler_id, task))?;
+            }
+            "close" | "ack" => {
                 let item_to_close = match &selected_item {
                     None => { parts.collect::<Vec<_>>().join(" ") }
                     Some(item) => { item.description.clone() }
