@@ -3,7 +3,7 @@ use std::io::{stdin};
 use crate::commands::UICommand;
 use std::sync::mpsc::Sender;
 use termion::input::TermRead;
-use log::error;
+use log::{info, error};
 use termion::event::Key;
 use std::cmp::max;
 
@@ -32,6 +32,7 @@ impl UserInputTask {
     }
 
     fn process_input(&mut self, key: Key) -> anyhow::Result<()>{
+        info!("Processing key event: {:?}", key);
         match key {
             Key::Char('\r') |
             Key::Char('\n') => {
