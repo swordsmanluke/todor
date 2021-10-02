@@ -1,9 +1,12 @@
 use crate::scheduled_item::ScheduledItem;
+use crate::display::PromptMessage;
 
 #[derive(Clone, Debug)]
 pub enum UICommand {
     Schedules(Vec<ScheduledItem>),
     UpdateUserInput(String),
+    Toast(PromptMessage),
+    SetPrompt(String),
     Execute(String),
     ClearSelection,
     SelectPrev,

@@ -18,7 +18,7 @@ impl CommandExecutor {
             "refresh" => { self.cmd_tx.send(ScheduleCommand::Refresh)?; },
             "add" => {
                 // TODO: Determine scheduler by prompting user... to select one?
-                let scheduler_id = "todo:Inbox".to_string();
+                let scheduler_id = "todoist:Inbox".to_string();
                 let task = parts.collect::<Vec<_>>().join(" ");
                 self.cmd_tx.send(ScheduleCommand::Add(scheduler_id, task))?;
             }
@@ -31,7 +31,7 @@ impl CommandExecutor {
                 info!("Attempting to ack item: {:?}", item_to_close);
 
                 let scheduler_id = match selected_item {
-                    None => { "todo:Inbox".to_string() } // TODO: Prompt for this
+                    None => { "todoist:Inbox".to_string() } // TODO: Prompt for this
                     Some(item) => { item.scheduler.clone() }
                 };
 

@@ -6,6 +6,10 @@ use std::error::Error;
 use std::fs::File;
 use restson::Error::HttpError;
 use log::info;
+use std::sync::mpsc::Sender;
+use crate::commands::UICommand;
+use crate::display::{PromptMessage, PromptMessageType};
+use std::time::Duration;
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct ApiToken {
@@ -15,19 +19,20 @@ pub struct ApiToken {
 pub struct TodoistScheduler {
     client: Box<dyn TodoistClient>,
     project: String,
-    cache: Vec<ScheduledItem>
+    cache: Vec<ScheduledItem>,
+    ui_tx: Sender<UICommand>
 }
 
-pub(crate) fn create_todoist_scheduler(name: String, project: String) -> Result<TodoistScheduler, Box<dyn Error>> {
+pub(crate) fn create_todoist_scheduler(name: String, project: String, ui_tx: Sender<UICommand>) -> Result<TodoistScheduler, Box<dyn Error>> {
     let file = File::open(format!("config/{}.json", name))?;
     let todoist_token: ApiToken = serde_json::from_reader(file).expect("Badly formatted auth token file!");
     let tdc = TodoistRestClient::new(todoist_token.token);
-    Ok(TodoistScheduler::new(Box::new(tdc), project))
+    Ok(TodoistScheduler::new(Box::new(tdc), project, ui_tx))
 }
 
 impl TodoistScheduler {
-    pub fn new(client: Box<dyn TodoistClient>, project: String) -> Self {
-        TodoistScheduler { client, project, cache: Vec::new() }
+    pub fn new(client: Box<dyn TodoistClient>, project: String, ui_tx: Sender<UICommand>) -> Self {
+        TodoistScheduler { client, project, ui_tx, cache: Vec::new() }
     }
 }
 
@@ -50,18 +55,18 @@ impl Scheduler for TodoistScheduler{
     fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
         let mut commands = target.split(" ");
         let target = commands.next().unwrap_or("");
-        let handled = match target {
-            "todo" => {
-                info!("Adding to Todoist project '{}'", self.project);
-                let description = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
+        info!("Adding to Todoist project '{}'", self.project);
+        let description = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
 
-                match self.client.add(self.project.as_str(), description, due_date) {
-                    Ok(result) => result,
-                    Err(e) => return Err(e.to_string())
-                }
-            },
-            _ => false
+        let handled = match self.client.add(self.project.as_str(), description, due_date) {
+            Ok(result) => result,
+            Err(e) => {
+                self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));
+                return Err(e.to_string())
+            }
         };
+
+        self.ui_tx.send(UICommand::Execute("refresh".to_string()));
 
         Ok(handled)
     }
@@ -78,6 +83,7 @@ impl Scheduler for TodoistScheduler{
                         match self.client.close(t.id) {
                             Ok(result) => {
                                 info!("Closed {}: {}", t.content, result);
+                                self.ui_tx.send(UICommand::Execute("refresh".to_string()));
                                 result
                             },
                             Err(e) => {

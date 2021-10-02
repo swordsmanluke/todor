@@ -5,19 +5,20 @@ use crate::todoist_scheduler::create_todoist_scheduler;
 use std::sync::mpsc::{Sender, Receiver};
 use crate::commands::{UICommand, ScheduleCommand, SchedulerAccountId};
 use std::error::Error;
-use std::time::Duration;
 use log::info;
 use date_time_parser::DateParser;
 use chrono::{Local, TimeZone, NaiveTime};
+use crate::display::{PromptMessage, PromptMessageType};
+use std::time::Duration;
 
 impl MasterScheduler {
     pub fn new(ui_sched_tx: Sender<UICommand>, cmd_rx: Receiver<ScheduleCommand>) -> Self {
         let cfg = load_scheduler_config().unwrap();
-
+        let ui_tx = ui_sched_tx.clone();
         MasterScheduler {
             cmd_rx,
             ui_sched_tx,
-            schedulers: load_schedulers(cfg).unwrap()
+            schedulers: load_schedulers(cfg, ui_tx).unwrap()
         }
     }
 
@@ -35,7 +36,13 @@ impl MasterScheduler {
                         ScheduleCommand::CloseTodo(account_id, task) => {
 
                             match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
-                                None => {info!("Could not find scheduler {} in {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());}
+                                None => {
+                                    let msg = format!("Could not find scheduler {} in {:?}",
+                                                      account_id,
+                                                      self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
+                                    info!("{}", msg);
+                                    self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+                                }
                                 Some(scheduler) => {
                                     info!("Removing task {}", task);
                                     if let Ok(true) = scheduler.remove(&task) {
@@ -68,10 +75,13 @@ impl MasterScheduler {
     fn add_task(&mut self, account_id: SchedulerAccountId, task: &String) {
         info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
         match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
-            None => { info!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>()) }
+            None => {
+                let msg = format!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
+                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+            }
             Some(scheduler) => {
                 // TODO: Replace this with the 'to_event' parser... as soon as I understand how to get data OUT of it.
-                let mut due_date = match DateParser::parse(&task) {
+                let due_date = match DateParser::parse(&task) {
                     None => { Local::today().and_hms(23, 59, 59) }
                     Some(d) => { Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
                 };
@@ -99,14 +109,14 @@ impl MasterScheduler {
 
 }
 
-fn load_schedulers(cfg: ScheduleConfig) -> Result<Vec<Box<dyn Scheduler>>, Box<dyn Error>> {
+fn load_schedulers(cfg: ScheduleConfig, ui_tx: Sender<UICommand>) -> Result<Vec<Box<dyn Scheduler>>, Box<dyn Error>> {
     let mut schedulers: Vec<Box<dyn Scheduler>> = Vec::new();
     for gc in cfg.google_cal {
         let auth_file = format!("config/{}.json", gc.name);
         schedulers.push(Box::new(create_gcal_scheduler(auth_file, gc.cal_name)?));
     }
     for td in cfg.todoist {
-        schedulers.push(Box::new(create_todoist_scheduler(td.name, td.project)?));
+        schedulers.push(Box::new(create_todoist_scheduler(td.name, td.project, ui_tx.clone())?));
     }
     Ok(schedulers)
 }
