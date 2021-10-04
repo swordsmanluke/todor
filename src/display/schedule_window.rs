@@ -10,8 +10,10 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 
 impl ScheduleWindow {
-    pub fn new() -> Self {
+    pub fn new(ui_tx: Sender<UICommand>) -> Self {
         ScheduleWindow {
+            ui_tx,
+            active: true,
             schedules: vec![],
             selected_item_idx: -1
         }
@@ -60,12 +62,42 @@ impl ScheduleWindow {
 }
 
 impl Window for ScheduleWindow {
+    fn id(&self) -> String {
+        String::from("schedule")
+    }
+
+    fn active(&self) -> bool {
+        self.active
+    }
+
+    fn enable(&mut self) {
+        self.active = true
+    }
+
+    fn disable(&mut self) {
+        self.active = false
+    }
+
     fn handle(&mut self, data: &UICommand) -> bool {
         match data{
             UICommand::Schedules(sched) => { self.schedules = sched.clone(); true }
             UICommand::SelectNext => { self.selected_item_idx = min(self.schedules.len() as i32 - 1, self.selected_item_idx + 1); true }
             UICommand::SelectPrev => { self.selected_item_idx = max(-1, self.selected_item_idx - 1); true }
             UICommand::ClearSelection => { self.selected_item_idx = -1; true }
+            UICommand::SubmitCommand(command) => {
+                match command.to_lowercase().as_str() {
+                    "ack" | "close" => {
+                        // Check for a selected item
+                        match self.selected_item() {
+                            None => { self.ui_tx.send(UICommand::Execute(command.clone())); }
+                            Some(item) => { self.ui_tx.send(UICommand::ExecuteWithItem(command.clone(), item.clone())); }
+                        }
+                        true
+                    }
+
+                    _ => { false }
+                }
+            }
             _ => { false }
         }
     }

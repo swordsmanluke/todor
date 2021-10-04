@@ -36,7 +36,7 @@ impl UserInputTask {
         match key {
             Key::Char('\r') |
             Key::Char('\n') => {
-                self.ui_tx.send(UICommand::Execute(self.user_input.clone()))?;
+                self.ui_tx.send(UICommand::SubmitCommand(self.user_input.clone()))?;
                 self.user_input.clear();
             },
             Key::Backspace => { self.user_input.truncate(max(0, self.user_input.len() - 1)); }

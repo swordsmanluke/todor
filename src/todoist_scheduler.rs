@@ -66,7 +66,7 @@ impl Scheduler for TodoistScheduler{
             }
         };
 
-        self.ui_tx.send(UICommand::Execute("refresh".to_string()));
+        self.ui_tx.send(UICommand::SubmitCommand("refresh".to_string()));
 
         Ok(handled)
     }
@@ -83,7 +83,7 @@ impl Scheduler for TodoistScheduler{
                         match self.client.close(t.id) {
                             Ok(result) => {
                                 info!("Closed {}: {}", t.content, result);
-                                self.ui_tx.send(UICommand::Execute("refresh".to_string()));
+                                self.ui_tx.send(UICommand::SubmitCommand("refresh".to_string()));
                                 result
                             },
                             Err(e) => {

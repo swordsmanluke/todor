@@ -19,4 +19,5 @@ pub struct UserInputTask {
 
 pub struct CommandExecutor {
     cmd_tx: Sender<ScheduleCommand>,
+    pub ui_tx: Sender<UICommand>,
 }

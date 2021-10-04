@@ -4,6 +4,7 @@ use crate::commands::UICommand;
 use std::io::Write;
 use crate::scheduled_item::ScheduledItem;
 use std::time::Duration;
+use std::sync::mpsc::Sender;
 
 impl PromptMessage {
     pub fn new(text: String, ttl: Duration, message_type: PromptMessageType) -> Self {
@@ -12,8 +13,10 @@ impl PromptMessage {
 }
 
 impl PromptWindow {
-    pub fn new() -> Self {
+    pub fn new(ui_tx: Sender<UICommand>) -> Self {
         PromptWindow {
+            ui_tx,
+            active: true,
             user_input: String::new(),
             prompt: String::from(":>"),
             message: None
@@ -30,6 +33,22 @@ impl PromptWindow {
 }
 
 impl Window for PromptWindow {
+    fn id(&self) -> String {
+        "prompt".to_string()
+    }
+
+    fn active(&self) -> bool {
+        self.active
+    }
+
+    fn enable(&mut self) {
+        self.active = true;
+    }
+
+    fn disable(&mut self) {
+        self.active = false;
+    }
+
     fn handle(&mut self, data: &UICommand) -> bool {
         match data {
             UICommand::UpdateUserInput(input) => {
@@ -38,6 +57,10 @@ impl Window for PromptWindow {
             }
             UICommand::Toast(msg) => {
                 self.message = Some(msg.clone());
+                true
+            }
+            UICommand::SubmitCommand(command) => {
+                self.ui_tx.send(UICommand::Execute(command.clone()));
                 true
             }
             _ => { false }

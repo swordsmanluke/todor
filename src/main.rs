@@ -9,14 +9,14 @@ extern crate event_parser;
 use std::error::Error;
 use std::thread;
 use std::sync::mpsc::{channel};
-use crate::commands::UICommand;
-use std::io::{stdout, Write};
+use crate::commands::{UICommand, ScheduleCommand};
+use std::io::stdout;
 use termion::raw::IntoRawMode;
 use simplelog::{CombinedLogger, WriteLogger, LevelFilter, Config};
 use std::fs::File;
 use log::info;
 use crate::tasks::{MasterScheduler, UserInputTask, CommandExecutor};
-use crate::display::{Window, ScheduleWindow, PromptWindow};
+use crate::display::{ScheduleWindow, WindowStack};
 
 mod google_calendar_client;
 mod google_scheduler;
@@ -34,11 +34,12 @@ const MAX_WIDTH: usize = 48; // max size of my terminal window TODO: Take this f
 fn main() -> Result<(), Box<dyn Error>> {
     init_logging();
 
-    let mut windows: Vec<Box<dyn Window>> = vec![];
-
     let mut stdout = stdout().into_raw_mode().unwrap();
     let (ui_tx, ui_rx) = channel();
     let (cmd_tx, cmd_rx) = channel();
+
+    // Create our UI Stack
+    let mut windows = WindowStack::new(ui_tx.clone());
 
     // Refresh tasks loop
     let ui_sched_tx = ui_tx.clone();
@@ -49,42 +50,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     thread::spawn(move || { UserInputTask::new(cmd_in).run().unwrap(); });
 
     // master I/O loop
-    let mut command_executor = CommandExecutor::new(cmd_tx);
+    let mut command_executor = CommandExecutor::new(cmd_tx.clone(), ui_tx.clone());
+    windows.push(Box::new(ScheduleWindow::new(ui_tx.clone())));
 
-    windows.push(Box::new(ScheduleWindow::new()));
-    windows.push(Box::new(PromptWindow::new()));
 
     loop {
         match ui_rx.recv() {
             Ok(cmd) => {
                 info!("Processing command: {:?}", cmd);
                 match cmd {
-                    UICommand::Execute(command) => {
-                        match command.to_lowercase().as_str() {
-                            "exit" => break,
-                            _ => {
-                                let item = match windows.iter().find(|w| w.selected_item().is_some()) {
-                                    None => None,
-                                    Some(window) => { window.selected_item() }
-                                };
-                                info!("Selected item: {:?}", item);
-                                command_executor.execute_command(&command, item)?;
-                            }
-                        }
-                    }
-
                     UICommand::Exit => { break; } // time to quit!
+                    UICommand::Add(scheduler_id, task) => { cmd_tx.send(ScheduleCommand::Add(scheduler_id, task)); }
+                    UICommand::Execute(command) => { command_executor.execute_command(&command, None); }
+                    UICommand::ExecuteWithItem(command, item) => { command_executor.execute_command(&command, Some(&item)); }
 
-                    ui_cmd => {
-                        for w in windows.iter_mut() {
-                            if w.handle(&ui_cmd) { break; }
-                        }
-
-                        for w in windows.iter_mut() {
-                            w.render(&mut stdout);
-                        }
-                        stdout.flush()?;
-                    }
+                    _ => { windows.handle_ui_command(cmd, &mut stdout); }
                 }
             }
             Err(_) => {}

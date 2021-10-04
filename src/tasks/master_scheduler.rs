@@ -22,7 +22,13 @@ impl MasterScheduler {
         }
     }
 
+    pub fn schedulers(&self) -> Vec<String> {
+        self.schedulers.iter().map(|s| s.id().clone()).collect()
+    }
+
     pub fn run(&mut self) -> anyhow::Result<()>{
+        // Tell the rest of the system about our schedulers
+        self.ui_sched_tx.send(UICommand::Schedulers(self.schedulers()));
         self.refresh().unwrap();
 
         loop {
@@ -73,7 +79,7 @@ impl MasterScheduler {
     }
 
     fn add_task(&mut self, account_id: SchedulerAccountId, task: &String) {
-        info!("Attempting to add '{}' to todo list '{}' ", task, account_id);
+        info!("Attempting to add '{}' to scheduler '{}' ", task, account_id);
         match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
             None => {
                 let msg = format!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
@@ -82,8 +88,8 @@ impl MasterScheduler {
             Some(scheduler) => {
                 // TODO: Replace this with the 'to_event' parser... as soon as I understand how to get data OUT of it.
                 let due_date = match DateParser::parse(&task) {
-                    None => { Local::today().and_hms(23, 59, 59) }
-                    Some(d) => { Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
+                    None => { info!("No datetime found in '{}' using today", task); Local::today().and_hms(23, 59, 59) }
+                    Some(d) => { info!("Found date {} in '{}'", d, task); Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
                 };
                 scheduler.add(task, Some(due_date));
             }
