@@ -2,7 +2,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use crate::commands::{UICommand, ScheduleCommand};
 use crate::scheduled_item::Scheduler;
 
-mod schedule_refresh;
+mod master_scheduler;
 mod user_input_task;
 mod command_executor;
 
