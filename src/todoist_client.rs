@@ -1,5 +1,6 @@
 use restson::{RestPath, Error, RestClient};
 use chrono::{DateTime, Local};
+use log::info;
 
 const URL_BASE: &str = "https://api.todoist.com/";
 
@@ -137,6 +138,7 @@ impl TodoistClient for TodoistRestClient {
             expect(format!("No project named {}", project).as_str());
 
         let data = Task::from(selected_project.id, task, due_date.unwrap_or(Local::now()));
+        info!("Creating Todoist Task: {:?}", data);
         client.post((), &data)?;
 
         Ok(true)
