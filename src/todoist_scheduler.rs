@@ -52,13 +52,10 @@ impl Scheduler for TodoistScheduler{
         self.cache.clone()
     }
 
-    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
-        let mut commands = target.split(" ");
-        let target = commands.next().unwrap_or("");
+    fn add(&mut self, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
         info!("Adding to Todoist project '{}'", self.project);
-        let description = commands.map(|s| s.to_string()).collect::<Vec<String>>().join(" ");
 
-        let handled = match self.client.add(self.project.as_str(), description, due_date) {
+        let handled = match self.client.add(self.project.as_str(), description.clone(), due_date) {
             Ok(result) => result,
             Err(e) => {
                 self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));

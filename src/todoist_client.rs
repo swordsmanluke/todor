@@ -24,6 +24,9 @@ pub struct Task {
     pub parent: Option<u64>,
     pub order: Option<u64>,
     pub priority: u64,
+    pub due_string: Option<String>,
+    pub due_date: Option<String>,
+    pub due_datetime: Option<String>,
     pub due: Option<TodoistDate>,
     pub url: String
 }
@@ -32,17 +35,20 @@ pub struct Task {
 struct TaskClose{}
 
 impl Task {
-    pub fn from(pid: u64, s: String, due: DateTime<Local>) -> Task {
+    pub fn new(pid: u64, description: String, due: DateTime<Local>) -> Task {
         Task {
             id: 0,
             project_id: pid,
             section_id: 0,
-            content: s,
+            content: description,
             completed: false,
             label_ids: vec![],
             parent: None,
             order: None,
             priority: 0,
+            due_string: None,
+            due_date: None,
+            due_datetime: Some(due.to_rfc3339()),
             due: Some(TodoistDate{
                 string: due.to_rfc3339(),
                 date: due.date().to_string(),
@@ -137,7 +143,7 @@ impl TodoistClient for TodoistRestClient {
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        let data = Task::from(selected_project.id, task, due_date.unwrap_or(Local::now()));
+        let data = Task::new(selected_project.id, task, due_date.unwrap_or(Local::now()));
         info!("Creating Todoist Task: {:?}", data);
         client.post((), &data)?;
 
