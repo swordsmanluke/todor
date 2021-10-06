@@ -2,7 +2,6 @@ use crate::display::{Window, PromptWindow, WindowStack, ScheduleSelectionWindow,
 use std::io::Write;
 use crate::commands::UICommand;
 use log::info;
-use crate::scheduled_item::ScheduledItem;
 use std::sync::mpsc::Sender;
 
 impl WindowStack {
@@ -56,7 +55,7 @@ impl WindowStack {
             w.render(stdout));
 
         self.windows.first().unwrap().render(stdout);
-        stdout.flush();
+        stdout.flush().unwrap();
     }
 
     pub fn push(&mut self, mut window: Box<dyn Window>) {

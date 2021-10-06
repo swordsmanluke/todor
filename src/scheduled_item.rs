@@ -30,9 +30,9 @@ pub trait Scheduler {
     fn id(&self) -> String;
     fn refresh(&mut self) -> Result<(), Box<dyn Error>>;
     fn schedule(&self) -> Vec<ScheduledItem>;
-    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String>;
-    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String>;
-    fn remove(&mut self, task: &String) -> Result<bool, String>;
+    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool>;
+    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool>;
+    fn remove(&mut self, task: &String) -> anyhow::Result<bool>;
 }
 
 // Configuration loading

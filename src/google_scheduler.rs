@@ -57,17 +57,17 @@ impl Scheduler for GoogleScheduler {
         self.cache.clone()
     }
 
-    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+    fn add(&mut self, target: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool> {
         // Not yet implemented
         Ok(false)
     }
 
-    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool> {
         // Not yet implemented
         Ok(false)
     }
 
-    fn remove(&mut self, prefix: &String) -> Result<bool, String> {
+    fn remove(&mut self, prefix: &String) -> anyhow::Result<bool> {
         // Not yet implemented
         Ok(false)
     }

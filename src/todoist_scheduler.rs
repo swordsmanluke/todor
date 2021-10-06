@@ -52,14 +52,14 @@ impl Scheduler for TodoistScheduler{
         self.cache.clone()
     }
 
-    fn add(&mut self, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+    fn add(&mut self, description: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool> {
         info!("Adding to Todoist project '{}'", self.project);
 
         let handled = match self.client.add(self.project.as_str(), description.clone(), due_date) {
             Ok(result) => result,
             Err(e) => {
                 self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));
-                return Err(e.to_string())
+                anyhow::bail!(e.to_string())
             }
         };
 
@@ -68,12 +68,12 @@ impl Scheduler for TodoistScheduler{
         Ok(handled)
     }
 
-    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool> {
         let handled = match self.client.reschedule(self.project.as_str(), id.parse::<u64>().unwrap(), description.clone(), due_date) {
             Ok(result) => result,
             Err(e) => {
                 self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));
-                return Err(e.to_string())
+                anyhow::bail!(e.to_string())
             }
         };
 
@@ -82,7 +82,7 @@ impl Scheduler for TodoistScheduler{
         Ok(handled)
     }
 
-    fn remove(&mut self, target: &String) -> Result<bool, String> {
+    fn remove(&mut self, target: &String) -> anyhow::Result<bool> {
         info!("Looking for a task '{}' in project {}", target, self.project);
         let tasks = self.client.tasks(self.project.as_str());
         let res = match tasks {
@@ -99,8 +99,8 @@ impl Scheduler for TodoistScheduler{
                             },
                             Err(e) => {
                                 match e {
-                                    HttpError(_code, msg) => { return Err(msg); },
-                                    _ => return Err(e.to_string())
+                                    HttpError(_code, msg) => { anyhow::bail!(msg); },
+                                    _ => anyhow::bail!(e.to_string())
                                 }
                             }
                         }
@@ -111,7 +111,7 @@ impl Scheduler for TodoistScheduler{
                     }
                 }
             },
-            Err(e) => return Err(e.to_string())
+            Err(e) => anyhow::bail!(e.to_string())
         };
 
         Ok(res)

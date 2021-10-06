@@ -1,4 +1,4 @@
-use crate::scheduled_item::{ScheduledItem, Scheduler};
+use crate::scheduled_item::ScheduledItem;
 use crate::display::PromptMessage;
 
 #[derive(Clone, Debug)]

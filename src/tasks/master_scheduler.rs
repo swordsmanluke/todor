@@ -28,8 +28,8 @@ impl MasterScheduler {
 
     pub fn run(&mut self) -> anyhow::Result<()>{
         // Tell the rest of the system about our schedulers
-        self.ui_sched_tx.send(UICommand::Schedulers(self.schedulers()));
-        self.refresh().unwrap();
+        self.ui_sched_tx.send(UICommand::Schedulers(self.schedulers()))?;
+        self.refresh()?;
 
         loop {
             match self.cmd_rx.recv_timeout(Duration::from_secs(60)) {
@@ -37,11 +37,11 @@ impl MasterScheduler {
                     match command {
                         ScheduleCommand::Refresh => { self.refresh()?; }
                         ScheduleCommand::Add(account_id, task) => {
-                            self.add_task(account_id, &task)
+                            self.add_task(account_id, &task)?;
                         }
                         ScheduleCommand::Reschedule(account_id, task, reschedule_time) => {
                             self.reschedule_task(account_id, &task, &reschedule_time);
-                            self.refresh();
+                            self.refresh()?;
                         }
                         ScheduleCommand::CloseTodo(account_id, task) => {
 
@@ -51,13 +51,13 @@ impl MasterScheduler {
                                                       account_id,
                                                       self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
                                     info!("{}", msg);
-                                    self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+                                    self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)))?;
                                 }
                                 Some(scheduler) => {
                                     info!("Removing task {}", task);
                                     if let Ok(true) = scheduler.remove(&task) {
-                                        self.refresh();
-                                        self.ui_sched_tx.send(UICommand::ClearSelection);
+                                        self.refresh()?;
+                                        self.ui_sched_tx.send(UICommand::ClearSelection)?;
                                     } else {
                                         // TODO: Display an error message
                                     }
@@ -82,12 +82,12 @@ impl MasterScheduler {
         Ok(())
     }
 
-    fn add_task(&mut self, account_id: SchedulerAccountId, task: &String) {
+    fn add_task(&mut self, account_id: SchedulerAccountId, task: &String) -> anyhow::Result<()> {
         info!("Attempting to add '{}' to scheduler '{}' ", task, account_id);
         match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
             None => {
                 let msg = format!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
-                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)))?;
             }
             Some(scheduler) => {
                 // TODO: Replace this with the 'to_event' parser... as soon as I understand how to get data OUT of it.
@@ -95,17 +95,18 @@ impl MasterScheduler {
                     None => { info!("No datetime found in '{}' using today", task); Local::today().and_hms(23, 59, 59) }
                     Some(d) => { info!("Found date {} in '{}'", d, task); Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
                 };
-                scheduler.add(task, Some(due_date));
+                scheduler.add(task, Some(due_date))?;
             }
         }
+        Ok(())
     }
 
-    fn reschedule_task(&mut self, account_id: SchedulerAccountId, task: &ScheduledItem, reschedule_time: &String) {
+    fn reschedule_task(&mut self, account_id: SchedulerAccountId, task: &ScheduledItem, reschedule_time: &String) -> anyhow::Result<()>{
         info!("Attempting to reschedule '{}' with scheduler '{}' ", task.description, account_id);
         match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
             None => {
                 let msg = format!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
-                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)))?;
             }
             Some(scheduler) => {
                 let due_date = match DateParser::parse(reschedule_time) {
@@ -113,9 +114,10 @@ impl MasterScheduler {
                     Some(d) => { info!("Found date {} in '{}'", d, reschedule_time); Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
                 };
 
-                scheduler.update(&task.id.split(":").last().unwrap().to_string(), &task.description, Some(due_date));
+                scheduler.update(&task.id.split(":").last().unwrap().to_string(), &task.description, Some(due_date))?;
             }
         }
+        Ok(())
     }
 
     fn refresh(&mut self) -> anyhow::Result<()>{
