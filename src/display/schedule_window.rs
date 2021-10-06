@@ -85,8 +85,8 @@ impl Window for ScheduleWindow {
             UICommand::SelectPrev => { self.selected_item_idx = max(-1, self.selected_item_idx - 1); true }
             UICommand::ClearSelection => { self.selected_item_idx = -1; true }
             UICommand::SubmitCommand(command) => {
-                match command.to_lowercase().as_str() {
-                    "ack" | "close" => {
+                match command.split_ascii_whitespace().next().unwrap_or("").to_lowercase().as_str() {
+                    "ack" | "close" | "reschedule" => {
                         // Check for a selected item
                         match self.selected_item() {
                             None => { self.ui_tx.send(UICommand::Execute(command.clone())); }

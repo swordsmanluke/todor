@@ -35,7 +35,7 @@ pub struct Task {
 struct TaskClose{}
 
 impl Task {
-    pub fn new(pid: u64, description: String, due: DateTime<Local>) -> Task {
+    pub fn new(pid: u64, id: Option<u64>, description: String, due: DateTime<Local>) -> Task {
         Task {
             id: 0,
             project_id: pid,
@@ -75,6 +75,7 @@ pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
     fn add(&self, project: &str, task: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
+    fn reschedule(&self, project: &str, task_id: u64, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
     fn close(&self, task_id: u64) ->  Result<bool, Error>;
 }
 
@@ -100,6 +101,12 @@ impl RestPath<()> for Tasks {
 
 impl RestPath<()> for Task {
     fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+}
+
+impl RestPath<u64> for Task {
+    fn get_path(task_id: u64) -> Result<String,Error> {
+        Ok(format!("rest/v1/tasks/{}", task_id))
+    }
 }
 
 impl RestPath<u64> for TaskClose {
@@ -143,9 +150,22 @@ impl TodoistClient for TodoistRestClient {
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        let data = Task::new(selected_project.id, task, due_date.unwrap_or(Local::now()));
+        let data = Task::new(selected_project.id, None, task, due_date.unwrap_or(Local::now()));
         info!("Creating Todoist Task: {:?}", data);
         client.post((), &data)?;
+
+        Ok(true)
+    }
+
+    fn reschedule(&self, project: &str, task_id: u64, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error> {
+        let mut client = self.get_client()?;
+        let projects = self.projects()?;
+        let selected_project = projects.iter().find(|p| p.name == project).
+            expect(format!("No project named {}", project).as_str());
+
+        let data = Task::new(selected_project.id, Some(task_id), content, due_date.unwrap_or(Local::now()));
+        info!("Rescheduling Todoist Task: {:?}", data);
+        client.post(task_id, &data)?;
 
         Ok(true)
     }

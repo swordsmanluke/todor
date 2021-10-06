@@ -68,6 +68,20 @@ impl Scheduler for TodoistScheduler{
         Ok(handled)
     }
 
+    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+        let handled = match self.client.reschedule(self.project.as_str(), id.parse::<u64>().unwrap(), description.clone(), due_date) {
+            Ok(result) => result,
+            Err(e) => {
+                self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));
+                return Err(e.to_string())
+            }
+        };
+
+        self.ui_tx.send(UICommand::SubmitCommand("refresh".to_string()));
+
+        Ok(handled)
+    }
+
     fn remove(&mut self, target: &String) -> Result<bool, String> {
         info!("Looking for a task '{}' in project {}", target, self.project);
         let tasks = self.client.tasks(self.project.as_str());

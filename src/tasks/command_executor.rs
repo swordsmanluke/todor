@@ -3,6 +3,8 @@ use crate::commands::{ScheduleCommand, UICommand};
 use std::sync::mpsc::Sender;
 use log::info;
 use crate::scheduled_item::ScheduledItem;
+use crate::display::{PromptMessage, PromptMessageType};
+use std::time::Duration;
 
 impl CommandExecutor {
     pub fn new(cmd_tx: Sender<ScheduleCommand>, ui_tx: Sender<UICommand>) -> Self {
@@ -20,6 +22,22 @@ impl CommandExecutor {
             "add" => {
                 self.ui_tx.send(UICommand::TransitionPush("schedule_selection".to_string()));
                 self.ui_tx.send(UICommand::AddGetScheduler(remainder));
+            }
+            "reschedule" => {
+                match &selected_item {
+                    None => {
+                        self.ui_tx.send(UICommand::Toast(
+                            PromptMessage::new("Select a task first!".to_string(),
+                                               Duration::from_secs(10),
+                                               PromptMessageType::Normal)));
+                    }
+                    Some(item) => {
+                        self.cmd_tx.send(ScheduleCommand::Reschedule(
+                            item.scheduler.clone(),
+                            (*item).clone(),
+                            remainder));
+                    }
+                }
             }
             "close" | "ack" => {
                 let item_to_close = match &selected_item {

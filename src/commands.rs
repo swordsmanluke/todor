@@ -34,4 +34,5 @@ pub enum ScheduleCommand {
     Refresh,
     Add(SchedulerAccountId, String),
     CloseTodo(SchedulerAccountId, String),
+    Reschedule(SchedulerAccountId, ScheduledItem, String),
 }

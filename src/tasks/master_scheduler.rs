@@ -1,4 +1,4 @@
-use crate::scheduled_item::{Scheduler, ScheduleConfig, load_scheduler_config};
+use crate::scheduled_item::{Scheduler, ScheduleConfig, load_scheduler_config, ScheduledItem};
 use crate::tasks::MasterScheduler;
 use crate::google_scheduler::create_gcal_scheduler;
 use crate::todoist_scheduler::create_todoist_scheduler;
@@ -38,6 +38,10 @@ impl MasterScheduler {
                         ScheduleCommand::Refresh => { self.refresh()?; }
                         ScheduleCommand::Add(account_id, task) => {
                             self.add_task(account_id, &task)
+                        }
+                        ScheduleCommand::Reschedule(account_id, task, reschedule_time) => {
+                            self.reschedule_task(account_id, &task, &reschedule_time);
+                            self.refresh();
                         }
                         ScheduleCommand::CloseTodo(account_id, task) => {
 
@@ -92,6 +96,24 @@ impl MasterScheduler {
                     Some(d) => { info!("Found date {} in '{}'", d, task); Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
                 };
                 scheduler.add(task, Some(due_date));
+            }
+        }
+    }
+
+    fn reschedule_task(&mut self, account_id: SchedulerAccountId, task: &ScheduledItem, reschedule_time: &String) {
+        info!("Attempting to reschedule '{}' with scheduler '{}' ", task.description, account_id);
+        match self.schedulers.iter_mut().find(|f| f.id() == account_id) {
+            None => {
+                let msg = format!("Could not find account '{}'. Schedulers: {:?}", account_id, self.schedulers.iter().map(|s| s.id()).collect::<Vec<_>>());
+                self.ui_sched_tx.send(UICommand::Toast(PromptMessage::new(msg, Duration::from_secs(10), PromptMessageType::Error)));
+            }
+            Some(scheduler) => {
+                let due_date = match DateParser::parse(reschedule_time) {
+                    None => { info!("No datetime found in '{}' using today", reschedule_time); Local::today().and_hms(23, 59, 59) }
+                    Some(d) => { info!("Found date {} in '{}'", d, reschedule_time); Local.from_local_date(&d).and_time(NaiveTime::from_hms(23, 59, 59)).unwrap() }
+                };
+
+                scheduler.update(&task.id.split(":").last().unwrap().to_string(), &task.description, Some(due_date));
             }
         }
     }

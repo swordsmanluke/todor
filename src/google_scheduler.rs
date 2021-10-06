@@ -62,6 +62,11 @@ impl Scheduler for GoogleScheduler {
         Ok(false)
     }
 
+    fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> Result<bool, String> {
+        // Not yet implemented
+        Ok(false)
+    }
+
     fn remove(&mut self, prefix: &String) -> Result<bool, String> {
         // Not yet implemented
         Ok(false)
