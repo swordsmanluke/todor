@@ -18,6 +18,9 @@ serde = "^1.0"
 serde_json = "^1.0"
 yup-oauth2 = "^1.0"
 
+# We need to manually include OpenSSL in the build
+openssl = { version = "0.10", features = ["vendored"] }
+
 # And this for todoist
 restson = "0.6.0"
 serde_derive = "^1.0"

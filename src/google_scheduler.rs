@@ -7,6 +7,7 @@ use std::ops::Add;
 use std::error::Error;
 use crate::google_calendar_client::{JsonTokenStorage, create_gcal_client};
 use std::str::FromStr;
+use log::info;
 
 pub struct GoogleScheduler {
     pub calendar_name: String,
@@ -97,7 +98,8 @@ fn event_start_time(e: &Event) -> Option<DateTime<Local>> {
     let time = match (e.start.as_ref(), e.original_start_time.as_ref()) {
         (None, None) => None,
         (Some(s), None) => Some(s.clone()),
-        (_, Some(s)) => Some(s.clone())
+        (None, Some(s)) => Some(s.clone()),
+        (Some(s1), Some(s2)) => Some(s1.clone())
     };
 
     Some(convert_event_time(time.unwrap()))
