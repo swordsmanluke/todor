@@ -7,22 +7,17 @@ const URL_BASE: &str = "https://api.todoist.com/";
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Project {
     comment_count: u64,
-    id: u64,
-    name: String,
-    color: u64,
-    shared: bool
+    id: String,
+    name: String
 }
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct Task {
-    pub id: u64,
-    pub project_id: u64,
-    pub section_id: u64,
+    pub id: String,
+    pub project_id: String,
     pub content: String,
-    pub completed: bool,
-    pub label_ids: Vec<u64>,
-    pub parent_id: Option<u64>,
-    pub order: Option<u64>,
+    pub is_completed: bool,
+    pub order: Option<usize>,
     pub priority: u64,
     pub due_string: Option<String>,
     pub due_date: Option<String>,
@@ -33,7 +28,7 @@ pub struct Task {
 
 #[derive(Serialize,Deserialize,Debug,Clone)]
 pub struct NewTask {
-    pub project_id: u64,
+    pub project_id: String,
     pub content: String,
     pub due_datetime: Option<String>,
 }
@@ -42,15 +37,12 @@ pub struct NewTask {
 struct TaskClose{}
 
 impl Task {
-    pub fn new(pid: u64, id: Option<u64>, description: String, due: DateTime<Local>) -> Task {
+    pub fn new(pid: String, id: Option<String>, description: String, due: DateTime<Local>) -> Task {
         Task {
-            id: id.unwrap_or(0),
+            id: id.unwrap_or("0".into()),
             project_id: pid,
-            section_id: 0,
             content: description,
-            completed: false,
-            label_ids: vec![],
-            parent_id: None,
+            is_completed: false,
             order: None,
             priority: 0,
             due_string: None,
@@ -63,7 +55,7 @@ impl Task {
 }
 
 impl NewTask {
-    pub fn new(pid: u64, description: String, due: DateTime<Local>) -> NewTask {
+    pub fn new(pid: String, description: String, due: DateTime<Local>) -> NewTask {
         NewTask {
             project_id: pid,
             content: description,
@@ -87,8 +79,8 @@ pub trait TodoistClient {
     fn projects(&self) -> Result<Vec<Project>, Error>;
     fn tasks(&self, project: &str) -> Result<Vec<Task>, Error>;
     fn add(&self, project: &str, task: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
-    fn reschedule(&self, project: &str, task_id: u64, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
-    fn close(&self, task_id: u64) ->  Result<bool, Error>;
+    fn reschedule(&self, project: &str, task_id: &str, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error>;
+    fn close(&self, task_id: &str) ->  Result<bool, Error>;
 }
 
 pub struct TodoistRestClient {
@@ -101,32 +93,32 @@ struct Projects ( pub Vec<Project> ); // alias to help deserialization
 #[derive(Serialize,Deserialize,Debug,Clone)]
 struct Tasks ( pub Vec<Task> ); // alias to help deserialization
 
-// get("https://api.todoist.com/rest/v1/projects", headers={"Authorization": "Bearer %s" % your_token}).json()
+// get("https://api.todoist.com/rest/v2/projects", headers={"Authorization": "Bearer %s" % your_token}).json()
 
 impl RestPath<()> for Projects {
-    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/projects".to_string()) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v2/projects".to_string()) }
 }
 
 impl RestPath<()> for Tasks {
-    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v2/tasks".to_string()) }
 }
 
 impl RestPath<()> for Task {
-    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v2/tasks".to_string()) }
 }
 
 impl RestPath<()> for NewTask {
-    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v1/tasks".to_string()) }
+    fn get_path(_: ()) -> Result<String,Error> { Ok("rest/v2/tasks".to_string()) }
 }
 
-impl RestPath<u64> for Task {
-    fn get_path(task_id: u64) -> Result<String,Error> {
-        Ok(format!("rest/v1/tasks/{}", task_id))
+impl RestPath<&str> for Task {
+    fn get_path(task_id: &str) -> Result<String,Error> {
+        Ok(format!("rest/v2/tasks/{}", task_id))
     }
 }
 
-impl RestPath<u64> for TaskClose {
-    fn get_path(task_id: u64) -> Result<String,Error> { Ok(format!("rest/v1/tasks/{}/close", task_id)) }
+impl RestPath<&str> for TaskClose {
+    fn get_path(task_id: &str) -> Result<String,Error> { Ok(format!("rest/v2/tasks/{}/close", task_id)) }
 }
 
 impl TodoistRestClient {
@@ -166,27 +158,27 @@ impl TodoistClient for TodoistRestClient {
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        let data = NewTask::new(selected_project.id, task, due_date.unwrap_or(Local::now()));
+        let data = NewTask::new(selected_project.id.clone(), task, due_date.unwrap_or(Local::now()));
         info!("Creating Todoist Task: {:?}", data);
         client.post((), &data)?;
 
         Ok(true)
     }
 
-    fn reschedule(&self, project: &str, task_id: u64, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error> {
+    fn reschedule(&self, project: &str, task_id: &str, content: String, due_date: Option<DateTime<Local>>) -> Result<bool, Error> {
         let mut client = self.get_client()?;
         let projects = self.projects()?;
         let selected_project = projects.iter().find(|p| p.name == project).
             expect(format!("No project named {}", project).as_str());
 
-        let data = Task::new(selected_project.id, Some(task_id), content, due_date.unwrap_or(Local::now()));
+        let data = Task::new(selected_project.id.clone(), Some(task_id.to_string()), content, due_date.unwrap_or(Local::now()));
         info!("Rescheduling Todoist Task: {:?}", data);
         client.post(task_id, &data)?;
 
         Ok(true)
     }
 
-    fn close(&self, task_id: u64) -> Result<bool, Error> {
+    fn close(&self, task_id: &str) -> Result<bool, Error> {
         let mut client = self.get_client()?;
         let task_close = TaskClose{};
         client.post(task_id, &task_close)?;

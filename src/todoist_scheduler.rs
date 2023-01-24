@@ -42,7 +42,7 @@ impl Scheduler for TodoistScheduler{
     }
 
     fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
-        self.cache = self.client.tasks(self.project.as_str())?.iter().
+        self.cache = self.client.tasks(&self.project)?.iter().
             map(|t| task_to_scheduled_item(&self.project, t)).collect();
 
         Ok(())
@@ -69,7 +69,7 @@ impl Scheduler for TodoistScheduler{
     }
 
     fn update(&mut self, id: &String, description: &String, due_date: Option<DateTime<Local>>) -> anyhow::Result<bool> {
-        let handled = match self.client.reschedule(self.project.as_str(), id.parse::<u64>().unwrap(), description.clone(), due_date) {
+        let handled = match self.client.reschedule(self.project.as_str(), id.as_str(), description.clone(), due_date) {
             Ok(result) => result,
             Err(e) => {
                 self.ui_tx.send(UICommand::Toast(PromptMessage::new(e.to_string(), Duration::from_secs(10), PromptMessageType::Error)));
@@ -91,7 +91,7 @@ impl Scheduler for TodoistScheduler{
                 match task{
                     Some(t) => {
                         info!("Found '{}'! Attempting to close it!", t.content);
-                        match self.client.close(t.id) {
+                        match self.client.close(&t.id) {
                             Ok(result) => {
                                 info!("Closed {}: {}", t.content, result);
                                 self.ui_tx.send(UICommand::SubmitCommand("refresh".to_string()));
